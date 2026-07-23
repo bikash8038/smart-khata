@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo, useState } from "react";
 
 interface Account {
   id: string;
@@ -20,6 +20,7 @@ interface Transaction {
   note: string | null;
   account_id: string;
   category_id: string | null;
+  created_at?: string;
 }
 
 interface TransactionListProps {
@@ -43,6 +44,9 @@ export function TransactionList({
   onDelete,
   title,
 }: TransactionListProps) {
+  const [limit, setLimit] = useState("25");
+  const sortedItems = useMemo(() => [...items].sort((a, b) => b.transaction_date.localeCompare(a.transaction_date) || (b.created_at ?? "").localeCompare(a.created_at ?? "")), [items]);
+  const visibleItems = title ? sortedItems : limit === "all" ? sortedItems : sortedItems.slice(0, Number(limit));
   const getAccountName = (id: string) => {
     return accounts.find((item) => item.id === id)?.name || t.account;
   };
@@ -54,13 +58,13 @@ export function TransactionList({
 
   return (
     <section className="record-panel">
-      <h2>{title || t.recentTransactions}</h2>
+      <div className="transaction-list-heading"><h2>{title || t.recentTransactions}</h2>{!title && <label className="transaction-show-menu">Show <select value={limit} onChange={(event) => setLimit(event.target.value)}><option value="25">25</option><option value="50">50</option><option value="75">75</option><option value="100">100</option><option value="all">All</option></select></label>}</div>
       
-      {items.length === 0 ? (
+      {visibleItems.length === 0 ? (
         <p className="empty-state">{t.noTransactions}</p>
       ) : (
         <div className="transaction-rows-container">
-          {items.map((item) => {
+          {visibleItems.map((item) => {
             const catName = getCategoryName(item.category_id);
             const accName = getAccountName(item.account_id);
             
@@ -92,10 +96,10 @@ export function TransactionList({
                 </div>
                 
                 <div className="record-amount-actions">
-                  <b className={`transaction-amount ${item.kind}`}>
+                  <div className="transaction-meta-row">{catName && <span className={`category-badge ${item.kind}`}>{catName}</span>}<b className={`transaction-amount ${item.kind}`}>
                     {item.kind === "income" ? "+ " : "− "}
                     {formatMoney(Number(item.amount))}
-                  </b>
+                  </b></div>
                   
                   <span className="row-actions">
                     <button

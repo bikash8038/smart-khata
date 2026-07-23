@@ -53,6 +53,7 @@ interface Transaction {
   note: string | null;
   account_id: string;
   category_id: string | null;
+  created_at?: string;
 }
 
 const financialPages: FinanceSection[] = ["budgets", "loans", "goals", "reports", "notifications"];
@@ -69,6 +70,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
   
   // Modal visibility states
   const [showAccountForm, setShowAccountForm] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   
@@ -111,13 +113,14 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
           .order("name_ne"),
         supabase
           .from("transactions")
-          .select("id,amount,kind,transaction_date,note,account_id,category_id")
-          .order("transaction_date", { ascending: false }),
+          .select("id,amount,kind,transaction_date,note,account_id,category_id,created_at")
+          .order("transaction_date", { ascending: false })
+          .order("created_at", { ascending: false }),
       ]);
 
       setAccounts((accountResult.data ?? []) as Account[]);
       setCategories((categoryResult.data ?? []) as Category[]);
-      setTransactions((transactionResult.data ?? []) as Transaction[]);
+      setTransactions([...(transactionResult.data ?? []) as Transaction[]].sort((a, b) => b.transaction_date.localeCompare(a.transaction_date) || (b.created_at ?? "").localeCompare(a.created_at ?? "")));
 
       if (accountResult.error || categoryResult.error || transactionResult.error) {
         setNotice(t.loadError);
@@ -192,18 +195,21 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     try {
-      const { error } = await supabase.from("accounts").insert({
-        user_id: user.id,
+      const payload = {
         name: String(form.get("name")),
         account_type: String(form.get("type")),
         opening_balance: Number(form.get("openingBalance") || 0),
-      });
+      };
+      const { error } = editingAccount
+        ? await supabase.from("accounts").update(payload).eq("id", editingAccount.id)
+        : await supabase.from("accounts").insert({ user_id: user.id, ...payload });
       if (error) {
         setNotice(error.message);
         return;
       }
       formElement.reset();
-      setNotice(t.accountSaved);
+      setNotice(editingAccount ? t.transactionUpdated : t.accountSaved);
+      setEditingAccount(null);
       setShowAccountForm(false);
       load();
     } catch {
@@ -220,10 +226,17 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
     }
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
+    let categoryId = String(form.get("category")) || null;
+    const newCategory = String(form.get("newCategory") || "").trim();
+    if (newCategory) {
+      const categoryResult = await supabase.from("categories").insert({ user_id: user.id, name_ne: newCategory, name_en: newCategory, kind: String(form.get("kind")) }).select("id").single();
+      if (categoryResult.error) { setNotice(categoryResult.error.message); return; }
+      categoryId = categoryResult.data.id;
+    }
     const payload = {
       user_id: user.id,
       account_id: String(form.get("account")),
-      category_id: String(form.get("category")) || null,
+      category_id: categoryId,
       kind: String(form.get("kind")),
       amount: Number(form.get("amount")),
       transaction_date: String(form.get("date")),
@@ -319,6 +332,15 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
         }
       },
     });
+  }
+
+  async function addCategoryFromTransaction(name: string, kind: "income" | "expense") {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return null;
+    const { data, error } = await supabase.from("categories").insert({ user_id: user.id, name_ne: name, name_en: name, kind }).select("id").single();
+    if (error) { setNotice(error.message); return null; }
+    await load();
+    return data?.id ?? null;
   }
 
   function editTransaction(item: Transaction) {
@@ -459,9 +481,10 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
         </div>
 
         {notice && (
-          <div className="workspace-notice">
-            <span className="notice-text">{notice}</span>
-            <div className="notice-progress-bar" />
+        <div className="workspace-notice">
+          <span className="notice-text">{notice}</span>
+          <button type="button" className="notice-close" onClick={() => setNotice("")} aria-label="Close">×</button>
+          <div className="notice-progress-bar" />
           </div>
         )}
 
@@ -495,9 +518,9 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
                 </section>
 
                 <section className="summary-grid">
-                  <MetricCard label={t.totalBalance} value={formatMoney(balance)} icon="💳" />
-                  <MetricCard label={t.monthlyIncome} value={formatMoney(totals.income)} icon="📈" />
-                  <MetricCard label={t.monthlyExpense} value={formatMoney(totals.expense)} icon="📉" />
+                  <MetricCard label={t.totalBalance} value={formatMoney(balance)} className="balance" icon="💳" />
+                  <MetricCard label={t.monthlyIncome} value={formatMoney(totals.income)} className="income" icon="📈" />
+                  <MetricCard label={t.monthlyExpense} value={formatMoney(totals.expense)} className="expense" icon="📉" />
                 </section>
 
                 {/* Dashboard Interactive Charts and Graphs Section */}
@@ -506,6 +529,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
                   categories={categories}
                   formatMoney={formatMoney}
                   t={t}
+                  locale={locale}
                 />
 
                 {(accounts.length === 0 || transactions.length === 0) && (
@@ -544,6 +568,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
                 empty={t.noAccounts}
                 formatMoney={formatMoney}
                 t={t}
+                onEdit={(account) => { setEditingAccount(account); setShowAccountForm(true); }}
               />
             )}
 
@@ -578,8 +603,8 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
         )}
 
         {showAccountForm && (
-          <Modal onClose={() => setShowAccountForm(false)}>
-            <AccountForm t={t} onCancel={() => setShowAccountForm(false)} onSave={saveAccount} />
+          <Modal onClose={() => { setShowAccountForm(false); setEditingAccount(null); }}>
+            <AccountForm t={t} current={editingAccount} onCancel={() => { setShowAccountForm(false); setEditingAccount(null); }} onSave={saveAccount} />
           </Modal>
         )}
 

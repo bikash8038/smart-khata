@@ -1,0 +1,45 @@
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 'C:\Users\Dear Bikash\Desktop\Smart Khata\node_modules\next\dist'
+npm warn tar TAR_ENTRY_ERROR ENOENT: no such file or directory, lstat 'C:\Users\Dear Bikash\Desktop\Smart Khata\node_modules\next\dist'
+npm warn cleanup Failed to remove some directories [
+npm warn cleanup   [
+npm warn cleanup     '\\\\?\\C:\\Users\\Dear Bikash\\Desktop\\Smart Khata\\node_modules\\@esbuild-kit\\core-utils\\node_modules\\esbuild',
+npm warn cleanup     [Error: EBUSY: resource busy or locked, rmdir 'C:\Users\Dear Bikash\Desktop\Smart Khata\node_modules\@esbuild-kit\core-utils\node_modules\esbuild'] {
+npm warn cleanup       errno: -4082,
+npm warn cleanup       code: 'EBUSY',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: 'C:\\Users\\Dear Bikash\\Desktop\\Smart Khata\\node_modules\\@esbuild-kit\\core-utils\\node_modules\\esbuild'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     'C:\\Users\\Dear Bikash\\Desktop\\Smart Khata\\node_modules\\@esbuild-kit\\core-utils\\node_modules\\esbuild',
+npm warn cleanup     [Error: EBUSY: resource busy or locked, rmdir 'C:\Users\Dear Bikash\Desktop\Smart Khata\node_modules\@esbuild-kit\core-utils\node_modules\esbuild'] {
+npm warn cleanup       errno: -4082,
+npm warn cleanup       code: 'EBUSY',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: 'C:\\Users\\Dear Bikash\\Desktop\\Smart Khata\\node_modules\\@esbuild-kit\\core-utils\\node_modules\\esbuild'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     'C:\\Users\\Dear Bikash\\Desktop\\Smart Khata\\node_modules\\next',
+npm warn cleanup     [Error: EPERM: operation not permitted, rmdir 'C:\Users\Dear Bikash\Desktop\Smart Khata\node_modules\next\dist\client'] {
+npm warn cleanup       errno: -4048,
+npm warn cleanup       code: 'EPERM',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: 'C:\\Users\\Dear Bikash\\Desktop\\Smart Khata\\node_modules\\next\\dist\\client'
+npm warn cleanup     }
+npm warn cleanup   ]
+npm warn cleanup ]
+npm error code 1
+npm error path C:\Users\Dear Bikash\Desktop\Smart Khata\node_modules\wrangler\node_modules\esbuild
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c node install.js
+npm error C:\Users\Dear Bikash\Desktop\Smart Khata\node_modules\wrangler\node_modules\esbuild\install.js:136
+npm error     throw new Error(`Expected ${JSON.stringify(versionFromPackageJSON)} but got ${JSON.stringify(stdout)}`);
+npm error           ^
+npm error
+npm error Error: Expected "0.27.3" but got "0.28.0"
+npm error     at validateBinaryVersion (C:\Users\Dear Bikash\Desktop\Smart Khata\node_modules\wrangler\node_modules\esbuild\install.js:136:11)
+npm error     at C:\Users\Dear Bikash\Desktop\Smart Khata\node_modules\wrangler\node_modules\esbuild\install.js:285:5
+npm error
+npm error Node.js v24.16.0
+npm error A complete log of this run can be found in: C:\Users\Dear Bikash\AppData\Local\npm-cache\_logs\2026-07-22T13_02_32_357Z-debug-0.log

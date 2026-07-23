@@ -22,9 +22,10 @@ interface AccountListProps {
   empty: string;
   formatMoney: (value: number) => string;
   t: Record<string, string>;
+  onEdit: (item: Account) => void;
 }
 
-export function AccountList({ items, transactions, empty, formatMoney, t }: AccountListProps) {
+export function AccountList({ items, transactions, empty, formatMoney, t, onEdit }: AccountListProps) {
   const getAccountTypeLabel = (type: string) => {
     switch (type) {
       case "cash":
@@ -71,6 +72,7 @@ export function AccountList({ items, transactions, empty, formatMoney, t }: Acco
               <span className="opening-balance-label">
                 {t.openingBalance || "Opening Balance"}: {formatMoney(Number(item.opening_balance))}
               </span>
+              <button type="button" className="account-edit-button" onClick={() => onEdit(item)}>{t.edit}</button>
             </article>
           );
         })
