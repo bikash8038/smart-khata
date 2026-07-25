@@ -378,7 +378,10 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
     setShowTransactionForm(true);
   }
 
-  function startTransaction(kind: "income" | "expense" = "expense") {
+  async function startTransaction(kind: "income" | "expense" = "expense") {
+    // A fresh session can open this modal before categories have reached the
+    // browser. Refresh first so the dropdown is populated on its first tap.
+    if (!categories.length) await load();
     setEditingTransaction(null);
     setNewTransactionKind(kind);
     setPage("transactions");
