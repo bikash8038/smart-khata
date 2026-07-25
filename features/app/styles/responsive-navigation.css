@@ -87,7 +87,7 @@
 }
 
 .workspace-sidebar .signout-button {
-  margin-top: auto !important;
+  margin-top: 8px !important;
 }
 
 .nav-icon-svg {
@@ -103,7 +103,7 @@
   align-items: flex-start;
   gap: 10px;
   min-width: 228px;
-  margin-top: auto;
+  margin-top: 18px;
   padding: 12px 6px 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
