@@ -589,3 +589,19 @@
   outline: none !important;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04) !important; /* Keep only subtle shadow, no border */
 }
+
+/* Mobile Safe Area Top Notch Support (Status Bar Protection) */
+@media (max-width: 850px) {
+  .workspace-topbar {
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    height: calc(56px + env(safe-area-inset-top, 0px)) !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  
+  /* Shift down content padding to keep layout spacing balanced */
+  .workspace-page {
+    padding-top: 20px !important;
+  }
+}

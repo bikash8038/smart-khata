@@ -63,7 +63,13 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
   const [page, setPage] = useState<Page>(
     pages.includes(initialPage as Page) ? (initialPage as Page) : "dashboard"
   );
-  const [locale, setLocale] = useState<WorkspaceLocale>("en");
+  const [locale, setLocale] = useState<WorkspaceLocale>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("smart_khata_locale");
+      if (saved === "en" || saved === "ne") return saved as WorkspaceLocale;
+    }
+    return "en";
+  });
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -148,6 +154,26 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
     return () => window.clearTimeout(timer);
   }, [notice]);
 
+  // Sync locale preference from Supabase user profile table
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    supabase
+      .from("profiles")
+      .select("locale")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.locale && (data.locale === "en" || data.locale === "ne")) {
+          setLocale(data.locale as WorkspaceLocale);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("smart_khata_locale", data.locale);
+          }
+        }
+      });
+  }, [user.id]);
+
   // Calculations
   const totals = useMemo(() => {
     return transactions.reduce(
@@ -179,6 +205,9 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
 
   async function setLanguage(nextLocale: WorkspaceLocale) {
     setLocale(nextLocale);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("smart_khata_locale", nextLocale);
+    }
     const supabase = getSupabaseBrowserClient();
     if (supabase) {
       await supabase.from("profiles").update({ locale: nextLocale }).eq("id", user.id);

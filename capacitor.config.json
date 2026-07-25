@@ -1,0 +1,9 @@
+{
+  "appId": "com.smartkhata.app",
+  "appName": "Smart Khata",
+  "webDir": "out",
+  "server": {
+    "url": "https://your-smartkhata-domain.com",
+    "cleartext": true
+  }
+}
