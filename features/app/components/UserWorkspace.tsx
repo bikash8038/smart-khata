@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient } from "../../../lib/supabase/client";
 import { FinanceModule, type FinanceSection } from "../../finance/components/FinanceModule";
@@ -59,6 +59,13 @@ interface Transaction {
 const financialPages: FinanceSection[] = ["budgets", "loans", "goals", "reports", "notifications"];
 const pages: Page[] = ["dashboard", "transactions", "accounts", "categories", ...financialPages];
 
+// Every workspace starts with useful choices for both transaction types. Users can
+// still add their own categories, but the transaction form is never empty on first use.
+const starterCategories: Record<"income" | "expense", string[]> = {
+  income: ["Salary", "Business", "Interest", "Gift", "Other"],
+  expense: ["Food", "Transport", "Rent", "Utilities", "Health", "Education", "Shopping", "Entertainment", "Other"],
+};
+
 export function UserWorkspace({ user, initialPage }: { user: User; initialPage?: string }) {
   const [page, setPage] = useState<Page>(
     pages.includes(initialPage as Page) ? (initialPage as Page) : "dashboard"
@@ -87,6 +94,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isCreatingStarterCategories = useRef(false);
   const [confirmDialog, setConfirmDialog] = useState<{
     title: string;
     message: string;
@@ -125,7 +133,39 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
       ]);
 
       setAccounts((accountResult.data ?? []) as Account[]);
-      setCategories((categoryResult.data ?? []) as Category[]);
+
+      let loadedCategories = (categoryResult.data ?? []) as Category[];
+      const missingKinds = (Object.keys(starterCategories) as Array<"income" | "expense">).filter(
+        (kind) => !loadedCategories.some((category) => category.kind === kind)
+      );
+
+      // A new account can have categories for only one kind (or none). Create the
+      // missing set once, then include it immediately in the open form's dropdown.
+      if (!categoryResult.error && missingKinds.length && !isCreatingStarterCategories.current) {
+        isCreatingStarterCategories.current = true;
+        const starterRows = missingKinds.flatMap((kind) =>
+          starterCategories[kind].map((name) => ({
+            user_id: user.id,
+            name_ne: name,
+            name_en: name,
+            kind,
+          }))
+        );
+        const { data: createdCategories, error: createCategoriesError } = await supabase
+          .from("categories")
+          .insert(starterRows)
+          .select("id,name_ne,kind");
+
+        if (createCategoriesError) {
+          isCreatingStarterCategories.current = false;
+        } else if (createdCategories) {
+          loadedCategories = [...loadedCategories, ...(createdCategories as Category[])].sort((a, b) =>
+            a.name_ne.localeCompare(b.name_ne)
+          );
+        }
+      }
+
+      setCategories(loadedCategories);
       setTransactions([...(transactionResult.data ?? []) as Transaction[]].sort((a, b) => b.transaction_date.localeCompare(a.transaction_date) || (b.created_at ?? "").localeCompare(a.created_at ?? "")));
 
       if (accountResult.error || categoryResult.error || transactionResult.error) {
@@ -381,7 +421,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
   async function startTransaction(kind: "income" | "expense" = "expense") {
     // A fresh session can open this modal before categories have reached the
     // browser. Refresh first so the dropdown is populated on its first tap.
-    if (!categories.length) await load();
+    if (!categories.some((category) => category.kind === kind)) await load();
     setEditingTransaction(null);
     setNewTransactionKind(kind);
     setPage("transactions");
