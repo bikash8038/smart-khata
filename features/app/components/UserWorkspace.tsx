@@ -363,6 +363,32 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
     }
   }
 
+  async function seedDefaultMainCategories() {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      setNotice(t.dbUnavailable);
+      return;
+    }
+
+    const rows = (Object.keys(starterMainCategories) as Array<"income" | "expense">).flatMap((kind) =>
+      starterMainCategories[kind].map(({ en, ne }) => ({
+        user_id: user.id,
+        name_ne: ne,
+        name_en: en,
+        kind,
+        parent_id: null,
+        is_main: true,
+      }))
+    );
+    const { error } = await supabase.from("categories").insert(rows);
+    if (error) {
+      setNotice(error.message);
+      return;
+    }
+    setNotice(locale === "ne" ? "डिफल्ट मुख्य श्रेणीहरू तयार भए।" : "Default main categories are ready.");
+    load();
+  }
+
   async function removeTransaction(id: string) {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
@@ -745,6 +771,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
               categories={categories}
               current={editingTransaction}
               initialKind={newTransactionKind}
+              onSeedMainCategories={seedDefaultMainCategories}
               onCancel={() => {
                 setShowTransactionForm(false);
                 setEditingTransaction(null);
