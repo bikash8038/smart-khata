@@ -62,9 +62,26 @@ interface Transaction {
 const financialPages: FinanceSection[] = ["budgets", "loans", "goals", "reports", "notifications"];
 const pages: Page[] = ["dashboard", "transactions", "accounts", "categories", ...financialPages];
 
-const starterMainCategories: Record<"income" | "expense", Array<{ en: string; ne: string }>> = {
+const legacyStarterMainCategories: Record<"income" | "expense", Array<{ en: string; ne: string }>> = {
   income: [{ en: "Employment Income", ne: "रोजगारी आम्दानी" }, { en: "Business & Freelance", ne: "व्यवसाय तथा फ्रीलान्स" }, { en: "Investment Income", ne: "लगानी आम्दानी" }, { en: "Other Income", ne: "अन्य आम्दानी" }],
   expense: [{ en: "Household & Daily Expenses", ne: "घरायसी तथा दैनिक खर्च" }, { en: "Transportation", ne: "यातायात" }, { en: "Health", ne: "स्वास्थ्य" }, { en: "Education", ne: "शिक्षा" }, { en: "Personal Expenses", ne: "व्यक्तिगत खर्च" }, { en: "Financial & Other Expenses", ne: "वित्तीय तथा अन्य खर्च" }],
+};
+
+const starterMainCategories: Record<"income" | "expense", Array<{ en: string; ne: string }>> = {
+  income: [
+    { en: "Regular Income", ne: "नियमित आम्दानी" },
+    { en: "Business & Work Income", ne: "व्यवसाय तथा कामबाट आम्दानी" },
+    { en: "Investment & Property Income", ne: "लगानी र सम्पत्तिबाट आम्दानी" },
+    { en: "Other Income Sources", ne: "अन्य स्रोतहरू" },
+  ],
+  expense: [
+    { en: "Household & Daily Expenses", ne: "घरायसी तथा दैनिक खर्च" },
+    { en: "Transportation", ne: "यातायात" },
+    { en: "Health & Wellness", ne: "स्वास्थ्य तथा तन्दुरुस्ती" },
+    { en: "Education", ne: "शिक्षा" },
+    { en: "Personal Expenses", ne: "व्यक्तिगत खर्च" },
+    { en: "Financial & Investment Expenses", ne: "वित्तीय तथा लगानी खर्च" },
+  ],
 };
 
 export function UserWorkspace({ user, initialPage }: { user: User; initialPage?: string }) {
@@ -609,11 +626,11 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
                 : t.manageCategories}
             </p>
           </div>
-          <div className="title-action-buttons">
+        <div className={`title-action-buttons ${page === "categories" ? "category-page-actions" : ""}`}>
             {page === "transactions" && (
               <button
                 type="button"
-                className="primary-button page-action"
+                className="primary-button page-action transaction-page-action"
                 onClick={() => startTransaction()}
               >
                 {t.newTransaction}
