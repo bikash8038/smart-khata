@@ -43,6 +43,8 @@ interface Category {
   id: string;
   name_ne: string;
   kind: "income" | "expense";
+  parent_id: string | null;
+  is_main: boolean;
 }
 
 interface Transaction {
@@ -59,11 +61,9 @@ interface Transaction {
 const financialPages: FinanceSection[] = ["budgets", "loans", "goals", "reports", "notifications"];
 const pages: Page[] = ["dashboard", "transactions", "accounts", "categories", ...financialPages];
 
-// Every workspace starts with useful choices for both transaction types. Users can
-// still add their own categories, but the transaction form is never empty on first use.
-const starterCategories: Record<"income" | "expense", string[]> = {
-  income: ["Salary", "Business", "Interest", "Gift", "Other"],
-  expense: ["Food", "Transport", "Rent", "Utilities", "Health", "Education", "Shopping", "Entertainment", "Other"],
+const starterMainCategories: Record<"income" | "expense", string[]> = {
+  income: ["Employment Income", "Business & Freelance", "Investment Income", "Other Income"],
+  expense: ["Household & Daily Expenses", "Transportation", "Health", "Education", "Personal Expenses", "Financial & Other Expenses"],
 };
 
 export function UserWorkspace({ user, initialPage }: { user: User; initialPage?: string }) {
@@ -122,7 +122,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
           .order("created_at"),
         supabase
           .from("categories")
-          .select("id,name_ne,kind")
+          .select("id,name_ne,kind,parent_id,is_main")
           .or(`user_id.eq.${user.id},is_system.eq.true`)
           .order("name_ne"),
         supabase
@@ -135,26 +135,28 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
       setAccounts((accountResult.data ?? []) as Account[]);
 
       let loadedCategories = (categoryResult.data ?? []) as Category[];
-      const missingKinds = (Object.keys(starterCategories) as Array<"income" | "expense">).filter(
-        (kind) => !loadedCategories.some((category) => category.kind === kind)
+      const missingMainCategories = (Object.keys(starterMainCategories) as Array<"income" | "expense">).flatMap((kind) =>
+        starterMainCategories[kind]
+          .filter((name) => !loadedCategories.some((category) => category.kind === kind && category.is_main && category.name_ne === name))
+          .map((name) => ({ kind, name }))
       );
 
-      // A new account can have categories for only one kind (or none). Create the
-      // missing set once, then include it immediately in the open form's dropdown.
-      if (!categoryResult.error && missingKinds.length && !isCreatingStarterCategories.current) {
+      // Ensure each user has the standard main category headings. Subcategories are
+      // then created underneath the selected heading from the transaction/category form.
+      if (!categoryResult.error && missingMainCategories.length && !isCreatingStarterCategories.current) {
         isCreatingStarterCategories.current = true;
-        const starterRows = missingKinds.flatMap((kind) =>
-          starterCategories[kind].map((name) => ({
-            user_id: user.id,
-            name_ne: name,
-            name_en: name,
-            kind,
-          }))
-        );
+        const starterRows = missingMainCategories.map(({ kind, name }) => ({
+          user_id: user.id,
+          name_ne: name,
+          name_en: name,
+          kind,
+          parent_id: null,
+          is_main: true,
+        }));
         const { data: createdCategories, error: createCategoriesError } = await supabase
           .from("categories")
           .insert(starterRows)
-          .select("id,name_ne,kind");
+          .select("id,name_ne,kind,parent_id,is_main");
 
         if (createCategoriesError) {
           isCreatingStarterCategories.current = false;
@@ -213,6 +215,26 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
         }
       });
   }, [user.id]);
+
+  // Synchronize active page state when browser back/forward buttons are clicked (popstate)
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window !== "undefined") {
+        const pathname = window.location.pathname;
+        if (pathname === "/") {
+          setPage("dashboard");
+        } else {
+          const parts = pathname.split("/");
+          const lastPart = parts[parts.length - 1] as Page;
+          if (pages.includes(lastPart)) {
+            setPage(lastPart);
+          }
+        }
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   // Calculations
   const totals = useMemo(() => {
@@ -298,7 +320,9 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
     let categoryId = String(form.get("category")) || null;
     const newCategory = String(form.get("newCategory") || "").trim();
     if (newCategory) {
-      const categoryResult = await supabase.from("categories").insert({ user_id: user.id, name_ne: newCategory, name_en: newCategory, kind: String(form.get("kind")) }).select("id").single();
+      const parentCategoryId = String(form.get("mainCategory") || "");
+      if (!parentCategoryId) { setNotice("Please choose a main category."); return; }
+      const categoryResult = await supabase.from("categories").insert({ user_id: user.id, name_ne: newCategory, name_en: newCategory, kind: String(form.get("kind")), parent_id: parentCategoryId, is_main: false }).select("id").single();
       if (categoryResult.error) { setNotice(categoryResult.error.message); return; }
       categoryId = categoryResult.data.id;
     }
@@ -366,6 +390,8 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
         name_ne: String(form.get("name")),
         name_en: String(form.get("name")),
         kind: String(form.get("kind")),
+        parent_id: String(form.get("level")) === "main" ? null : String(form.get("parentCategory")),
+        is_main: String(form.get("level")) === "main",
       });
       if (error) {
         setNotice(error.message);
@@ -403,10 +429,10 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
     });
   }
 
-  async function addCategoryFromTransaction(name: string, kind: "income" | "expense") {
+  async function addCategoryFromTransaction(name: string, kind: "income" | "expense", parentId: string) {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return null;
-    const { data, error } = await supabase.from("categories").insert({ user_id: user.id, name_ne: name, name_en: name, kind }).select("id").single();
+    const { data, error } = await supabase.from("categories").insert({ user_id: user.id, name_ne: name, name_en: name, kind, parent_id: parentId, is_main: false }).select("id").single();
     if (error) { setNotice(error.message); return null; }
     await load();
     return data?.id ?? null;
@@ -414,17 +440,17 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
 
   function editTransaction(item: Transaction) {
     setEditingTransaction(item);
-    setPage("transactions");
+    handlePageChange("transactions");
     setShowTransactionForm(true);
   }
 
   async function startTransaction(kind: "income" | "expense" = "expense") {
     // A fresh session can open this modal before categories have reached the
     // browser. Refresh first so the dropdown is populated on its first tap.
-    if (!categories.some((category) => category.kind === kind)) await load();
+    if (!categories.some((category) => category.kind === kind && category.is_main)) await load();
     setEditingTransaction(null);
     setNewTransactionKind(kind);
-    setPage("transactions");
+    handlePageChange("transactions");
     setShowTransactionForm(true);
   }
 
@@ -457,9 +483,13 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
     });
   }, [transactions, categories, query, typeFilter]);
 
-  // Navigate function passed to children
+  // Navigate function passed to children (updates React state and browser URL bar without reloading)
   const handlePageChange = (targetPage: Page) => {
     setPage(targetPage);
+    if (typeof window !== "undefined") {
+      const path = targetPage === "dashboard" ? "/" : `/personal/${targetPage}`;
+      window.history.pushState({ page: targetPage }, "", path);
+    }
   };
 
   // If a planning page is selected, wrap the FinanceModule inside the WorkspaceFrame
@@ -705,7 +735,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
 
         {showCategoryForm && (
           <Modal onClose={() => setShowCategoryForm(false)}>
-            <CategoryForm t={t} onCancel={() => setShowCategoryForm(false)} onSave={saveCategory} />
+            <CategoryForm t={t} categories={categories} onCancel={() => setShowCategoryForm(false)} onSave={saveCategory} />
           </Modal>
         )}
         {confirmDialog && (
@@ -937,7 +967,7 @@ function WorkspaceFrame({
         )}
 
         {/* Native bottom navigation bar for mobile app experience */}
-        <MobileBottomNav page={page} setPage={setPage} t={t} onOpenMoreMenu={() => setMobileMoreOpen(true)} />
+        {/* <MobileBottomNav page={page} setPage={setPage} t={t} onOpenMoreMenu={() => setMobileMoreOpen(true)} /> */}
       </main>
 
       {/* Slide-up Bottom Sheet Modal for Mobile "More" Hub */}

@@ -191,11 +191,23 @@
 .category-choice { display:flex; gap:8px; }.category-choice select,.category-choice input { flex:1; min-width:0; }.category-choice .outline-button { flex:0 0 auto; min-height:42px; }
 .searchable-select { position:relative; flex:1; min-width:0; }.category-trigger { width:100%; min-height:42px; display:flex; justify-content:space-between; align-items:center; padding:0 12px; border:1px solid #d1d5db; border-radius:7px; background:#fff; color:#193b3a; font:inherit; text-align:left; cursor:pointer; }.category-menu { position:absolute; z-index:20; top:calc(100% + 4px); width:100%; max-height:190px; overflow:auto; scrollbar-width:none; border:1px solid #cceee9; border-radius:8px; background:#fff; box-shadow:0 8px 22px rgba(15,23,42,.15); }.category-menu::-webkit-scrollbar { display:none; }.category-menu input { width:100%; min-height:38px; border:0; border-bottom:1px solid #e5e7eb; border-radius:0; }.category-menu button { width:100%; padding:10px 12px; border:0; background:#fff; font:inherit; text-align:left; cursor:pointer; }.category-menu button:hover { background:#f0fdfa; }
 .category-empty { margin:0; padding:12px; color:#64748b; font-size:.85rem; line-height:1.4; }
+.category-help { margin: -4px 0 18px; color: #64748b; }
+.category-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.category-group { min-width: 0; border: 1px solid #d8eeeb; border-radius: 12px; padding: 14px; background: #fbfffe; }
+.category-group h3 { margin: 0 0 12px; color: #0f766e; font-size: .95rem; }
+.category-main-row + .category-main-row { margin-top: 12px; padding-top: 12px; border-top: 1px solid #e4f2ef; }
+.category-main-heading, .category-sub-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.category-main-heading strong { font-size: .94rem; }
+.category-sub-list { display: grid; gap: 7px; margin: 8px 0 0 12px; padding-left: 12px; border-left: 2px solid #b7e4df; }
+.category-sub-row { color: #4b5563; font-size: .88rem; }
+.category-sub-list small { color: #94a3b8; }
+.category-main-heading .action-btn-red, .category-sub-row .action-btn-red { min-width: 28px; min-height: 28px; padding: 0; font-size: 1.1rem; }
 
 @media (max-width: 520px) {
   .category-choice { align-items: stretch; }
   .category-choice .outline-button { min-width: 58px; padding-inline: 10px; }
   .category-menu { z-index: 320; max-height: min(240px, 36vh); }
+  .category-groups { grid-template-columns: 1fr; gap: 12px; }
 }
 .transaction-form .form-actions { position:sticky; bottom:0; padding:12px 0 0; background:#fff; }
 
@@ -481,10 +493,12 @@
     grid-template-columns: minmax(0, 1fr) auto !important;
     gap: 10px !important;
     padding: 10px 0 !important;
+    align-items: start !important; /* Top align to match the title line */
   }
   
   .record-amount-actions {
     justify-content: center !important;
+    margin-top: -2px !important; /* Pull up amount to align perfectly with title text baseline */
   }
   
   .record-amount-actions .row-actions {
@@ -504,6 +518,40 @@
   .action-icon-svg {
     width: 12px !important;
     height: 12px !important;
+  }
+
+  /* Single-line layout & Graceful Ellipsis for Mobile Transaction Rows */
+  .record-info strong {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 200px !important;
+    display: block !important;
+  }
+
+  .transaction-sub-info {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 6px !important;
+    margin-top: 4px !important;
+  }
+
+  .account-badge {
+    max-width: 150px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: inline-block !important;
+  }
+
+  .date-badge {
+    white-space: nowrap !important;
+    display: inline-block !important;
+  }
+
+  .transaction-meta-row {
+    display: block !important;
   }
 }
 

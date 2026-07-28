@@ -89,6 +89,7 @@ export function TransactionList({
                       {item.note || catName || (item.kind === "income" ? t.income : t.expense)}
                     </strong>
                     <p className="transaction-sub-info">
+                      {item.note && catName && <span className={`category-badge ${item.kind}`}>{catName}</span>}
                       <span className="account-badge">{accName}</span>
                       <span className="date-badge">{item.transaction_date}</span>
                     </p>
@@ -96,10 +97,12 @@ export function TransactionList({
                 </div>
                 
                 <div className="record-amount-actions">
-                  <div className="transaction-meta-row">{catName && <span className={`category-badge ${item.kind}`}>{catName}</span>}<b className={`transaction-amount ${item.kind}`}>
-                    {item.kind === "income" ? "+ " : "− "}
-                    {formatMoney(Number(item.amount))}
-                  </b></div>
+                  <div className="transaction-meta-row">
+                    <b className={`transaction-amount ${item.kind}`}>
+                      {item.kind === "income" ? "+ " : "− "}
+                      {formatMoney(Number(item.amount))}
+                    </b>
+                  </div>
                   
                   <span className="row-actions">
                     <button
