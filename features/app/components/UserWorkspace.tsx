@@ -173,14 +173,19 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
       setTransactions([...(transactionResult.data ?? []) as Transaction[]].sort((a, b) => b.transaction_date.localeCompare(a.transaction_date) || (b.created_at ?? "").localeCompare(a.created_at ?? "")));
 
       if (accountResult.error || categoryResult.error || transactionResult.error) {
-        setNotice(t.loadError);
+        const categorySchemaIsMissing = Boolean(categoryResult.error && /(?:is_main|parent_id)/i.test(categoryResult.error.message));
+        setNotice(
+          categorySchemaIsMissing
+            ? (locale === "ne" ? "Category setup पूरा भएको छैन। Supabase SQL migration चलाउनुहोस्।" : "Category setup is incomplete. Run the Supabase SQL migration.")
+            : t.loadError
+        );
       }
     } catch {
       setNotice(t.networkError);
     } finally {
       setLoading(false);
     }
-  }, [user.id, t.loadError, t.networkError]);
+  }, [user.id, t.loadError, t.networkError, locale]);
 
   // Load data asynchronously on mount and update with a setTimeout wrapper
   // to avoid synchronous setState warning inside the React rendering cycle
