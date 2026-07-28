@@ -5,6 +5,11 @@ alter table public.categories
 
 create index if not exists categories_user_kind_parent_idx on public.categories (user_id, kind, parent_id);
 
+-- Prevent accidental duplicate default main headings for the same user.
+create unique index if not exists categories_user_kind_main_name_unique
+  on public.categories (user_id, kind, name_en)
+  where is_main = true and user_id is not null;
+
 with main_categories(kind, name_en, name_ne) as (
   values
     ('expense'::public.transaction_kind, 'Household & Daily Expenses', 'घरायसी तथा दैनिक खर्च'),

@@ -219,6 +219,8 @@
   .category-menu { z-index: 320; max-height: min(240px, 36vh); }
   .category-groups { grid-template-columns: 1fr; gap: 12px; }
   .category-settings-grid { grid-template-columns:1fr; gap:12px; }
+  .category-menu input { display:none; }
+  .category-menu { max-height:min(240px, 38vh); }
 }
 .transaction-form .form-actions { position:sticky; bottom:0; padding:12px 0 0; background:#fff; }
 

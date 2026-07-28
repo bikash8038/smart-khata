@@ -370,6 +370,16 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
       return;
     }
 
+    const { data: existingCategories, error: existingCategoriesError } = await supabase
+      .from("categories")
+      .select("kind,name_en")
+      .eq("user_id", user.id)
+      .eq("is_main", true);
+    if (existingCategoriesError) {
+      setNotice(existingCategoriesError.message);
+      return;
+    }
+
     const rows = (Object.keys(starterMainCategories) as Array<"income" | "expense">).flatMap((kind) =>
       starterMainCategories[kind].map(({ en, ne }) => ({
         user_id: user.id,
@@ -379,7 +389,13 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
         parent_id: null,
         is_main: true,
       }))
-    );
+    ).filter((row) => !existingCategories?.some((category) => category.kind === row.kind && category.name_en === row.name_en));
+
+    if (!rows.length) {
+      setNotice(locale === "ne" ? "डिफल्ट मुख्य श्रेणीहरू पहिले नै छन्।" : "Default main categories already exist.");
+      load();
+      return;
+    }
     const { error } = await supabase.from("categories").insert(rows);
     if (error) {
       setNotice(error.message);
