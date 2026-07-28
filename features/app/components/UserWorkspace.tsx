@@ -630,7 +630,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
             {page === "transactions" && (
               <button
                 type="button"
-                className="primary-button page-action transaction-page-action"
+                className="primary-button page-action transaction-page-action hide-on-mobile-action"
                 onClick={() => startTransaction()}
               >
                 {t.newTransaction}

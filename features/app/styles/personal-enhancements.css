@@ -677,3 +677,49 @@
     padding-top: 20px !important;
   }
 }
+
+/* Hide top "New transaction" header button on mobile screens & simulators */
+@media (max-width: 1024px) {
+  .transaction-page-action,
+  .hide-on-mobile-action {
+    display: none !important;
+  }
+}
+
+.hide-on-mobile-action {
+  display: none !important;
+}
+
+/* Category Choice Wrapper & Stacked Subcategory Inputs */
+.category-choice-wrapper {
+  display: flex !important;
+  gap: 10px !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+}
+
+.category-choice-wrapper select,
+.category-choice-wrapper .subcategory-select {
+  flex: 1 !important;
+  width: 100% !important;
+}
+
+.new-subcategory-inputs {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  flex: 1 !important;
+  width: 100% !important;
+}
+
+.new-subcategory-inputs input {
+  width: 100% !important;
+}
+
+.add-subcat-toggle-btn {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+  height: 42px !important;
+  align-self: flex-start !important;
+}
+
