@@ -21,7 +21,9 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--color-page); color: var(--color-text); font-family: "Noto Sans Devanagari", "Noto Sans", Inter, Arial, sans-serif; }
+html { overflow-x: hidden; scrollbar-width: none; }
+html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+body { margin: 0; overflow-x: hidden; background: var(--color-page); color: var(--color-text); font-family: "Noto Sans Devanagari", "Noto Sans", Inter, Arial, sans-serif; }
 button, input, select { font: inherit; }
 .w-full { width: 100%; }
 .workspace-notice,.auth-message{position:fixed!important;top:24px!important;right:24px!important;z-index:200!important;display:flex;align-items:center;gap:10px;max-width:360px;margin:0!important;padding:14px 18px!important;border:1px solid #87dcd2!important;border-radius:14px!important;background:#f0fffc!important;color:#075f5b!important;box-shadow:0 16px 38px rgba(7,95,91,.2)!important;animation:toast-enter .28s ease-out}.workspace-notice::before,.auth-message::before{content:"✓";display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#0f8f84;color:white;font-weight:800}

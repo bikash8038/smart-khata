@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 
 interface ModalProps {
   children: React.ReactNode;
@@ -8,6 +8,14 @@ interface ModalProps {
 }
 
 export function Modal({ children, onClose }: ModalProps) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <div

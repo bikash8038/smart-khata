@@ -27,11 +27,19 @@ export function TransactionForm({ t, accounts, categories, current, initialKind,
     setAddingCategory(false);
   };
 
+  const selectCategory = (id: string) => {
+    // Use pointer down rather than click: mobile browsers can otherwise leave the
+    // floating list open after a tap because the focused search input is remounted.
+    setCategoryId(id);
+    setCategoryOpen(false);
+    setCategoryQuery("");
+  };
+
   return <form className="data-form transaction-form" onSubmit={onSave}>
     <h2>{current ? t.edit : t.newTransaction}</h2>
     <label>{t.transactionType}<select name="kind" value={kind} onChange={(e) => changeKind(e.target.value as "income" | "expense")}><option value="expense">{t.expense}</option><option value="income">{t.income}</option></select></label>
     <label>{t.account}<select name="account" defaultValue={current?.account_id ?? accounts[0]?.id}>{accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label>
-    <label>{t.category}<div className="category-choice">{addingCategory ? <input name="newCategory" required autoFocus placeholder={t.categoryName} /> : <div className="searchable-select"><input type="hidden" name="category" value={categoryId} /><button type="button" className="category-trigger" aria-expanded={categoryOpen} onClick={() => setCategoryOpen((open) => !open)}>{categoryId ? relevantCategories.find((c) => c.id === categoryId)?.name_ne : "Choose Category"}<span>v</span></button>{categoryOpen && <div className="category-menu"><input autoFocus value={categoryQuery} onChange={(e) => setCategoryQuery(e.target.value)} placeholder="Search Category" />{matchingCategories.length ? matchingCategories.map((category) => <button type="button" key={category.id} onClick={() => { setCategoryId(category.id); setCategoryOpen(false); setCategoryQuery(""); }}>{category.name_ne}</button>) : <p className="category-empty">{relevantCategories.length ? "No matching categories." : `No ${categoryTypeLabel} categories yet. Use Add.`}</p>}</div>}</div>}<button type="button" className="outline-button" onClick={() => { setAddingCategory((adding) => !adding); setCategoryOpen(false); }}>{addingCategory ? "Choose" : "Add"}</button></div></label>
+    <label>{t.category}<div className="category-choice">{addingCategory ? <input name="newCategory" required autoFocus placeholder={t.categoryName} /> : <div className="searchable-select"><input type="hidden" name="category" value={categoryId} /><button type="button" className="category-trigger" aria-expanded={categoryOpen} onClick={() => setCategoryOpen((open) => !open)}>{categoryId ? relevantCategories.find((c) => c.id === categoryId)?.name_ne : "Choose Category"}<span>v</span></button>{categoryOpen && <div className="category-menu"><input autoFocus value={categoryQuery} onChange={(e) => setCategoryQuery(e.target.value)} placeholder="Search Category" />{matchingCategories.length ? matchingCategories.map((category) => <button type="button" key={category.id} onPointerDown={(event) => { event.preventDefault(); selectCategory(category.id); }}>{category.name_ne}</button>) : <p className="category-empty">{relevantCategories.length ? "No matching categories." : `No ${categoryTypeLabel} categories yet. Use Add.`}</p>}</div>}</div>}<button type="button" className="outline-button" onClick={() => { setAddingCategory((adding) => !adding); setCategoryOpen(false); }}>{addingCategory ? "Choose" : "Add"}</button></div></label>
     <label>{t.amount}<input name="amount" type="number" min="0.01" step="0.01" defaultValue={current?.amount ?? ""} required placeholder={t.amount} autoComplete="off" /></label>
     <label>{t.date}<input name="date" type="date" defaultValue={current?.transaction_date ?? new Date().toISOString().slice(0, 10)} required /></label>
     <label>{t.note}<input name="note" defaultValue={current?.note ?? ""} placeholder={kind === "income" ? "Income Topic" : "Expense Topic"} autoComplete="off" /></label>
