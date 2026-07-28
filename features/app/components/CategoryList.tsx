@@ -2,17 +2,15 @@
 
 import React from "react";
 
-interface Category { id: string; name_ne: string; kind: "income" | "expense"; parent_id: string | null; is_main: boolean }
-interface CategoryListProps { items: Category[]; t: Record<string, string>; onDelete: (id: string) => void }
+interface Category { id: string; name_ne: string; name_en: string | null; kind: "income" | "expense"; parent_id: string | null; is_main: boolean }
+interface CategoryListProps { items: Category[]; t: Record<string, string>; locale: "en" | "ne"; onEdit: (item: Category) => void; onDelete: (id: string) => void }
 
-export function CategoryList({ items, t, onDelete }: CategoryListProps) {
-  const renderKind = (kind: "income" | "expense") => {
-    const mains = items.filter((item) => item.kind === kind && item.is_main);
-    return <section className="category-group" key={kind}><h3>{kind === "income" ? t.income : t.expense}</h3>{mains.map((main) => {
-      const subs = items.filter((item) => item.parent_id === main.id && !item.is_main);
-      return <article className="category-main-row" key={main.id}><div className="category-main-heading"><strong>{main.name_ne}</strong><button type="button" className="action-btn-red" onClick={() => onDelete(main.id)} title={t.remove}>×</button></div><div className="category-sub-list">{subs.length ? subs.map((sub) => <div className="category-sub-row" key={sub.id}><span>{sub.name_ne}</span><button type="button" className="action-btn-red" onClick={() => onDelete(sub.id)} title={t.remove}>×</button></div>) : <small>No subcategories yet.</small>}</div></article>;
-    })}</section>;
-  };
+export function CategoryList({ items, t, locale, onEdit, onDelete }: CategoryListProps) {
+  const label = (item: Category) => locale === "ne" ? item.name_ne : (item.name_en || item.name_ne);
+  const ActionButtons = ({ item }: { item: Category }) => <span className="category-actions"><button type="button" className="action-btn-blue" onClick={() => onEdit(item)} title={t.edit}>✎</button><button type="button" className="action-btn-red" onClick={() => onDelete(item.id)} title={t.remove}>×</button></span>;
+  const mainItems = items.filter((item) => item.is_main);
+  const subItems = items.filter((item) => !item.is_main);
+  const parentName = (item: Category) => label(items.find((parent) => parent.id === item.parent_id) ?? item);
 
-  return <section className="record-panel category-settings"><h2>{t.categories}</h2><p className="category-help">Create and manage main categories and their subcategories.</p>{items.length === 0 ? <p className="empty-state">{t.addCategory}</p> : <div className="category-groups">{renderKind("expense")}{renderKind("income")}</div>}</section>;
+  return <section className="record-panel category-settings"><h2>{t.categories}</h2><p className="category-help">{locale === "ne" ? "मुख्य श्रेणी र त्यसअन्तर्गतका उप-श्रेणी अलग-अलग व्यवस्थापन गर्नुहोस्।" : "Manage main categories and their subcategories separately."}</p><div className="category-settings-grid"><section className="category-list-section"><h3>{locale === "ne" ? "मुख्य श्रेणी" : "Main Categories"}</h3>{mainItems.length ? mainItems.map((item) => <article className="category-list-row" key={item.id}><div><strong>{label(item)}</strong><small>{item.kind === "income" ? t.income : t.expense}</small></div><ActionButtons item={item} /></article>) : <p className="empty-state">No main categories yet.</p>}</section><section className="category-list-section"><h3>{locale === "ne" ? "उप-श्रेणी" : "Subcategories"}</h3>{subItems.length ? subItems.map((item) => <article className="category-list-row" key={item.id}><div><strong>{label(item)}</strong><small>{parentName(item)} · {item.kind === "income" ? t.income : t.expense}</small></div><ActionButtons item={item} /></article>) : <p className="empty-state">No subcategories yet.</p>}</section></div></section>;
 }

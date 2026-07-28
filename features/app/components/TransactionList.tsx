@@ -10,6 +10,7 @@ interface Account {
 interface Category {
   id: string;
   name_ne: string;
+  name_en: string | null;
 }
 
 interface Transaction {
@@ -29,6 +30,7 @@ interface TransactionListProps {
   categories: Category[];
   formatMoney: (value: number) => string;
   t: Record<string, string>;
+  locale: "en" | "ne";
   onEdit: (item: Transaction) => void;
   onDelete: (id: string) => void;
   title?: string;
@@ -40,6 +42,7 @@ export function TransactionList({
   categories,
   formatMoney,
   t,
+  locale,
   onEdit,
   onDelete,
   title,
@@ -53,7 +56,8 @@ export function TransactionList({
 
   const getCategoryName = (id: string | null) => {
     if (!id) return null;
-    return categories.find((item) => item.id === id)?.name_ne || null;
+    const category = categories.find((item) => item.id === id);
+    return category ? (locale === "ne" ? category.name_ne : category.name_en || category.name_ne) : null;
   };
 
   return (

@@ -42,6 +42,7 @@ interface Account {
 interface Category {
   id: string;
   name_ne: string;
+  name_en: string | null;
   kind: "income" | "expense";
   parent_id: string | null;
   is_main: boolean;
@@ -61,9 +62,9 @@ interface Transaction {
 const financialPages: FinanceSection[] = ["budgets", "loans", "goals", "reports", "notifications"];
 const pages: Page[] = ["dashboard", "transactions", "accounts", "categories", ...financialPages];
 
-const starterMainCategories: Record<"income" | "expense", string[]> = {
-  income: ["Employment Income", "Business & Freelance", "Investment Income", "Other Income"],
-  expense: ["Household & Daily Expenses", "Transportation", "Health", "Education", "Personal Expenses", "Financial & Other Expenses"],
+const starterMainCategories: Record<"income" | "expense", Array<{ en: string; ne: string }>> = {
+  income: [{ en: "Employment Income", ne: "रोजगारी आम्दानी" }, { en: "Business & Freelance", ne: "व्यवसाय तथा फ्रीलान्स" }, { en: "Investment Income", ne: "लगानी आम्दानी" }, { en: "Other Income", ne: "अन्य आम्दानी" }],
+  expense: [{ en: "Household & Daily Expenses", ne: "घरायसी तथा दैनिक खर्च" }, { en: "Transportation", ne: "यातायात" }, { en: "Health", ne: "स्वास्थ्य" }, { en: "Education", ne: "शिक्षा" }, { en: "Personal Expenses", ne: "व्यक्तिगत खर्च" }, { en: "Financial & Other Expenses", ne: "वित्तीय तथा अन्य खर्च" }],
 };
 
 export function UserWorkspace({ user, initialPage }: { user: User; initialPage?: string }) {
@@ -85,7 +86,8 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
   const [showAccountForm, setShowAccountForm] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
-  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [categoryFormMode, setCategoryFormMode] = useState<"main" | "sub" | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [newTransactionKind, setNewTransactionKind] = useState<"income" | "expense">("expense");
@@ -122,7 +124,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
           .order("created_at"),
         supabase
           .from("categories")
-          .select("id,name_ne,kind,parent_id,is_main")
+          .select("id,name_ne,name_en,kind,parent_id,is_main")
           .or(`user_id.eq.${user.id},is_system.eq.true`)
           .order("name_ne"),
         supabase
@@ -137,18 +139,18 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
       let loadedCategories = (categoryResult.data ?? []) as Category[];
       const missingMainCategories = (Object.keys(starterMainCategories) as Array<"income" | "expense">).flatMap((kind) =>
         starterMainCategories[kind]
-          .filter((name) => !loadedCategories.some((category) => category.kind === kind && category.is_main && category.name_ne === name))
-          .map((name) => ({ kind, name }))
+          .filter((entry) => !loadedCategories.some((category) => category.kind === kind && category.is_main && category.name_en === entry.en))
+          .map((entry) => ({ kind, ...entry }))
       );
 
       // Ensure each user has the standard main category headings. Subcategories are
       // then created underneath the selected heading from the transaction/category form.
       if (!categoryResult.error && missingMainCategories.length && !isCreatingStarterCategories.current) {
         isCreatingStarterCategories.current = true;
-        const starterRows = missingMainCategories.map(({ kind, name }) => ({
+        const starterRows = missingMainCategories.map(({ kind, en, ne }) => ({
           user_id: user.id,
-          name_ne: name,
-          name_en: name,
+          name_ne: ne,
+          name_en: en,
           kind,
           parent_id: null,
           is_main: true,
@@ -156,7 +158,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
         const { data: createdCategories, error: createCategoriesError } = await supabase
           .from("categories")
           .insert(starterRows)
-          .select("id,name_ne,kind,parent_id,is_main");
+          .select("id,name_ne,name_en,kind,parent_id,is_main");
 
         if (createCategoriesError) {
           isCreatingStarterCategories.current = false;
@@ -318,11 +320,12 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     let categoryId = String(form.get("category")) || null;
-    const newCategory = String(form.get("newCategory") || "").trim();
-    if (newCategory) {
+    const newCategoryNe = String(form.get("newCategory_ne") || "").trim();
+    const newCategoryEn = String(form.get("newCategory_en") || "").trim();
+    if (newCategoryNe || newCategoryEn) {
       const parentCategoryId = String(form.get("mainCategory") || "");
-      if (!parentCategoryId) { setNotice("Please choose a main category."); return; }
-      const categoryResult = await supabase.from("categories").insert({ user_id: user.id, name_ne: newCategory, name_en: newCategory, kind: String(form.get("kind")), parent_id: parentCategoryId, is_main: false }).select("id").single();
+      if (!parentCategoryId || !newCategoryNe || !newCategoryEn) { setNotice("Please complete the main category and both category names."); return; }
+      const categoryResult = await supabase.from("categories").insert({ user_id: user.id, name_ne: newCategoryNe, name_en: newCategoryEn, kind: String(form.get("kind")), parent_id: parentCategoryId, is_main: false }).select("id").single();
       if (categoryResult.error) { setNotice(categoryResult.error.message); return; }
       categoryId = categoryResult.data.id;
     }
@@ -385,21 +388,27 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     try {
-      const { error } = await supabase.from("categories").insert({
+      const mode = String(form.get("mode")) as "main" | "sub";
+      const payload = {
         user_id: user.id,
-        name_ne: String(form.get("name")),
-        name_en: String(form.get("name")),
+        name_ne: String(form.get("name_ne")).trim(),
+        name_en: String(form.get("name_en")).trim(),
         kind: String(form.get("kind")),
-        parent_id: String(form.get("level")) === "main" ? null : String(form.get("parentCategory")),
-        is_main: String(form.get("level")) === "main",
-      });
+        parent_id: mode === "main" ? null : String(form.get("parentCategory")),
+        is_main: mode === "main",
+      };
+      if (!payload.name_ne || !payload.name_en || (mode === "sub" && !payload.parent_id)) { setNotice("Please complete all category fields."); return; }
+      const { error } = editingCategory
+        ? await supabase.from("categories").update(payload).eq("id", editingCategory.id)
+        : await supabase.from("categories").insert(payload);
       if (error) {
         setNotice(error.message);
         return;
       }
       formElement.reset();
       setNotice(t.categorySaved);
-      setShowCategoryForm(false);
+      setCategoryFormMode(null);
+      setEditingCategory(null);
       load();
     } catch {
       setNotice(t.saveCategoryError);
@@ -415,6 +424,8 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
       onConfirm: async () => {
         setConfirmDialog(null);
         try {
+          const target = categories.find((category) => category.id === id);
+          if (target?.is_main) await supabase.from("categories").delete().eq("parent_id", id);
           const { error } = await supabase.from("categories").delete().eq("id", id);
           if (error) {
             setNotice(error.message);
@@ -571,13 +582,16 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
               </button>
             )}
             {page === "categories" && (
-              <button
-                type="button"
-                className="primary-button page-action"
-                onClick={() => setShowCategoryForm(true)}
-              >
-                {t.addCategory}
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="primary-button page-action"
+                  onClick={() => { setEditingCategory(null); setCategoryFormMode("main"); }}
+                >
+                  Add Main Category
+                </button>
+                <button type="button" className="outline-button page-action" onClick={() => { setEditingCategory(null); setCategoryFormMode("sub"); }}>Add Subcategory</button>
+              </>
             )}
           </div>
         </div>
@@ -675,7 +689,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
             )}
 
             {page === "categories" && (
-              <CategoryList items={categories} t={t} onDelete={removeCategory} />
+              <CategoryList items={categories} t={t} locale={locale} onEdit={(category) => { setEditingCategory(category); setCategoryFormMode(category.is_main ? "main" : "sub"); }} onDelete={removeCategory} />
             )}
 
             {(page === "dashboard" || page === "transactions") && (
@@ -695,6 +709,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
                   categories={categories}
                   formatMoney={formatMoney}
                   t={t}
+                  locale={locale}
                   onEdit={editTransaction}
                   onDelete={removeTransaction}
                   title={page === "dashboard" ? t.recentTransactions : undefined}
@@ -720,6 +735,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
             <TransactionForm
               key={editingTransaction?.id ?? "new"}
               t={t}
+              locale={locale}
               accounts={accounts}
               categories={categories}
               current={editingTransaction}
@@ -733,9 +749,9 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
           </Modal>
         )}
 
-        {showCategoryForm && (
-          <Modal onClose={() => setShowCategoryForm(false)}>
-            <CategoryForm t={t} categories={categories} onCancel={() => setShowCategoryForm(false)} onSave={saveCategory} />
+        {categoryFormMode && (
+          <Modal onClose={() => { setCategoryFormMode(null); setEditingCategory(null); }}>
+            <CategoryForm t={t} locale={locale} mode={categoryFormMode} current={editingCategory} categories={categories} onCancel={() => { setCategoryFormMode(null); setEditingCategory(null); }} onSave={saveCategory} />
           </Modal>
         )}
         {confirmDialog && (
