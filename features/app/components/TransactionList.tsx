@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { formatAdToBs } from "../../../lib/nepali-date";
 
 interface Account {
   id: string;
@@ -95,7 +96,9 @@ export function TransactionList({
                     <p className="transaction-sub-info">
                       {item.note && catName && <span className={`category-badge ${item.kind}`}>{catName}</span>}
                       <span className="account-badge">{accName}</span>
-                      <span className="date-badge">{item.transaction_date}</span>
+                      <span className="date-badge" title={`AD: ${item.transaction_date}`}>
+                        {formatAdToBs(item.transaction_date, locale)} ({item.transaction_date})
+                      </span>
                     </p>
                   </div>
                 </div>

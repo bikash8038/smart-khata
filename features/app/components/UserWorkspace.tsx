@@ -1,10 +1,14 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { getSupabaseBrowserClient } from "../../../lib/supabase/client";
 import { FinanceModule, type FinanceSection } from "../../finance/components/FinanceModule";
-import { personalCopy, type WorkspaceLocale } from "../content/personal-copy";
+
+// Custom Hooks & Types
+import { useWorkspaceLocale } from "../hooks/useWorkspaceLocale";
+import { useWorkspaceNavigation } from "../hooks/useWorkspaceNavigation";
+import { useWorkspaceData } from "../hooks/useWorkspaceData";
+import type { Page, WorkspaceLocale } from "../types/workspace";
 
 // Import modular components
 import { MetricCard } from "./MetricCard";
@@ -17,8 +21,8 @@ import { CategoryList } from "./CategoryList";
 import { TransactionToolbar } from "./TransactionToolbar";
 import { Modal } from "./Modal";
 import { FinancialCharts } from "./FinancialCharts";
-import { MobileBottomNav } from "./MobileBottomNav";
 import { AlertModal } from "../../../components/ui/AlertModal";
+import { PageSkeleton } from "../../../components/ui/AppSkeleton";
 
 // Import styles
 import "../styles/user-workspace.css";
@@ -27,98 +31,50 @@ import "../styles/responsive-navigation.css";
 import "../styles/interaction-polish.css";
 import "../styles/dashboard-charts.css";
 
-import { PageSkeleton } from "../../../components/ui/AppSkeleton";
-
-type PersonalPage = "dashboard" | "transactions" | "accounts" | "categories";
-type Page = PersonalPage | FinanceSection;
-
-interface Account {
-  id: string;
-  name: string;
-  account_type: string;
-  opening_balance: number;
-}
-
-interface Category {
-  id: string;
-  name_ne: string;
-  name_en: string | null;
-  kind: "income" | "expense";
-  parent_id: string | null;
-  is_main: boolean;
-}
-
-interface Transaction {
-  id: string;
-  amount: number;
-  kind: "income" | "expense" | "transfer";
-  transaction_date: string;
-  note: string | null;
-  account_id: string;
-  category_id: string | null;
-  created_at?: string;
-}
-
-const financialPages: FinanceSection[] = ["budgets", "loans", "goals", "reports", "notifications"];
-const pages: Page[] = ["dashboard", "transactions", "accounts", "categories", ...financialPages];
-
-const legacyStarterMainCategories: Record<"income" | "expense", Array<{ en: string; ne: string }>> = {
-  income: [{ en: "Employment Income", ne: "रोजगारी आम्दानी" }, { en: "Business & Freelance", ne: "व्यवसाय तथा फ्रीलान्स" }, { en: "Investment Income", ne: "लगानी आम्दानी" }, { en: "Other Income", ne: "अन्य आम्दानी" }],
-  expense: [{ en: "Household & Daily Expenses", ne: "घरायसी तथा दैनिक खर्च" }, { en: "Transportation", ne: "यातायात" }, { en: "Health", ne: "स्वास्थ्य" }, { en: "Education", ne: "शिक्षा" }, { en: "Personal Expenses", ne: "व्यक्तिगत खर्च" }, { en: "Financial & Other Expenses", ne: "वित्तीय तथा अन्य खर्च" }],
-};
-
-const starterMainCategories: Record<"income" | "expense", Array<{ en: string; ne: string }>> = {
-  income: [
-    { en: "Regular Income", ne: "नियमित आम्दानी" },
-    { en: "Business & Work Income", ne: "व्यवसाय तथा कामबाट आम्दानी" },
-    { en: "Investment & Property Income", ne: "लगानी र सम्पत्तिबाट आम्दानी" },
-    { en: "Other Income Sources", ne: "अन्य स्रोतहरू" },
-  ],
-  expense: [
-    { en: "Household & Daily Expenses", ne: "घरायसी तथा दैनिक खर्च" },
-    { en: "Transportation", ne: "यातायात" },
-    { en: "Health & Wellness", ne: "स्वास्थ्य तथा तन्दुरुस्ती" },
-    { en: "Education", ne: "शिक्षा" },
-    { en: "Personal Expenses", ne: "व्यक्तिगत खर्च" },
-    { en: "Financial & Investment Expenses", ne: "वित्तीय तथा लगानी खर्च" },
-  ],
-};
-
 export function UserWorkspace({ user, initialPage }: { user: User; initialPage?: string }) {
-  const [page, setPage] = useState<Page>(
-    pages.includes(initialPage as Page) ? (initialPage as Page) : "dashboard"
-  );
-  const [locale, setLocale] = useState<WorkspaceLocale>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("smart_khata_locale");
-      if (saved === "en" || saved === "ne") return saved as WorkspaceLocale;
-    }
-    return "en";
-  });
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  
-  // Modal visibility states
-  const [showAccountForm, setShowAccountForm] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
-  const [showTransactionForm, setShowTransactionForm] = useState(false);
-  const [categoryFormMode, setCategoryFormMode] = useState<"main" | "sub" | null>(null);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [newTransactionKind, setNewTransactionKind] = useState<"income" | "expense">("expense");
-  const [query, setQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
-  const [notice, setNotice] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const isCreatingStarterCategories = useRef(false);
-  const [confirmDialog, setConfirmDialog] = useState<{
-    title: string;
-    message: string;
-    onConfirm: () => void;
-  } | null>(null);
+  const { locale, setLanguage, t } = useWorkspaceLocale(user);
+  const { page, setPage, mobileMenuOpen, setMobileMenuOpen, financialPages } = useWorkspaceNavigation(initialPage);
+
+  const {
+    accounts,
+    categories,
+    transactions,
+    filteredTransactions,
+    totals,
+    balance,
+    loading,
+    notice,
+    setNotice,
+    query,
+    setQuery,
+    typeFilter,
+    setTypeFilter,
+    confirmDialog,
+    setConfirmDialog,
+    showAccountForm,
+    setShowAccountForm,
+    editingAccount,
+    setEditingAccount,
+    showTransactionForm,
+    setShowTransactionForm,
+    categoryFormMode,
+    setCategoryFormMode,
+    editingCategory,
+    setEditingCategory,
+    editingTransaction,
+    setEditingTransaction,
+    newTransactionKind,
+    formatMoney,
+    saveAccount,
+    saveTransaction,
+    removeTransaction,
+    saveCategory,
+    removeCategory,
+    seedDefaultMainCategories,
+    editTransaction,
+    startTransaction,
+    signOut,
+  } = useWorkspaceData(user, locale, t, setPage);
 
   // Initialize day greeting state directly to avoid useEffect setState linter warnings
   const [dayGreeting] = useState(() => {
@@ -126,446 +82,9 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
     return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   });
 
-  const t = personalCopy[locale];
-
-  // Fetch all user ledger data
-  const load = useCallback(async () => {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) return;
-    setLoading(true);
-    try {
-      const [accountResult, categoryResult, transactionResult] = await Promise.all([
-        supabase
-          .from("accounts")
-          .select("id,name,account_type,opening_balance")
-          .order("created_at"),
-        supabase
-          .from("categories")
-          .select("id,name_ne,name_en,kind,parent_id,is_main")
-          .or(`user_id.eq.${user.id},is_system.eq.true`)
-          .order("name_ne"),
-        supabase
-          .from("transactions")
-          .select("id,amount,kind,transaction_date,note,account_id,category_id,created_at")
-          .order("transaction_date", { ascending: false })
-          .order("created_at", { ascending: false }),
-      ]);
-
-      setAccounts((accountResult.data ?? []) as Account[]);
-
-      let loadedCategories = (categoryResult.data ?? []) as Category[];
-      const missingMainCategories = (Object.keys(starterMainCategories) as Array<"income" | "expense">).flatMap((kind) =>
-        starterMainCategories[kind]
-          .filter((entry) => !loadedCategories.some((category) => category.kind === kind && category.is_main && category.name_en === entry.en))
-          .map((entry) => ({ kind, ...entry }))
-      );
-
-      // Ensure each user has the standard main category headings. Subcategories are
-      // then created underneath the selected heading from the transaction/category form.
-      if (!categoryResult.error && missingMainCategories.length && !isCreatingStarterCategories.current) {
-        isCreatingStarterCategories.current = true;
-        const starterRows = missingMainCategories.map(({ kind, en, ne }) => ({
-          user_id: user.id,
-          name_ne: ne,
-          name_en: en,
-          kind,
-          parent_id: null,
-          is_main: true,
-        }));
-        const { data: createdCategories, error: createCategoriesError } = await supabase
-          .from("categories")
-          .insert(starterRows)
-          .select("id,name_ne,name_en,kind,parent_id,is_main");
-
-        if (createCategoriesError) {
-          isCreatingStarterCategories.current = false;
-        } else if (createdCategories) {
-          loadedCategories = [...loadedCategories, ...(createdCategories as Category[])].sort((a, b) =>
-            a.name_ne.localeCompare(b.name_ne)
-          );
-        }
-      }
-
-      setCategories(loadedCategories);
-      setTransactions([...(transactionResult.data ?? []) as Transaction[]].sort((a, b) => b.transaction_date.localeCompare(a.transaction_date) || (b.created_at ?? "").localeCompare(a.created_at ?? "")));
-
-      if (accountResult.error || categoryResult.error || transactionResult.error) {
-        const categorySchemaIsMissing = Boolean(categoryResult.error && /(?:is_main|parent_id)/i.test(categoryResult.error.message));
-        setNotice(
-          categorySchemaIsMissing
-            ? (locale === "ne" ? "Category setup पूरा भएको छैन। Supabase SQL migration चलाउनुहोस्।" : "Category setup is incomplete. Run the Supabase SQL migration.")
-            : t.loadError
-        );
-      }
-    } catch {
-      setNotice(t.networkError);
-    } finally {
-      setLoading(false);
-    }
-  }, [user.id, t.loadError, t.networkError, locale]);
-
-  // Load data asynchronously on mount and update with a setTimeout wrapper
-  // to avoid synchronous setState warning inside the React rendering cycle
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      load();
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [load]);
-
-  // Notice auto-clear logic
-  useEffect(() => {
-    if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 3000);
-    return () => window.clearTimeout(timer);
-  }, [notice]);
-
-  // Sync locale preference from Supabase user profile table
-  useEffect(() => {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) return;
-
-    supabase
-      .from("profiles")
-      .select("locale")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (data?.locale && (data.locale === "en" || data.locale === "ne")) {
-          setLocale(data.locale as WorkspaceLocale);
-          if (typeof window !== "undefined") {
-            localStorage.setItem("smart_khata_locale", data.locale);
-          }
-        }
-      });
-  }, [user.id]);
-
-  // Synchronize active page state when browser back/forward buttons are clicked (popstate)
-  useEffect(() => {
-    const handlePopState = () => {
-      if (typeof window !== "undefined") {
-        const pathname = window.location.pathname;
-        if (pathname === "/") {
-          setPage("dashboard");
-        } else {
-          const parts = pathname.split("/");
-          const lastPart = parts[parts.length - 1] as Page;
-          if (pages.includes(lastPart)) {
-            setPage(lastPart);
-          }
-        }
-      }
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-
-  // Calculations
-  const totals = useMemo(() => {
-    return transactions.reduce(
-      (result, row) => ({
-        income: result.income + (row.kind === "income" ? Number(row.amount) : 0),
-        expense: result.expense + (row.kind === "expense" ? Number(row.amount) : 0),
-      }),
-      { income: 0, expense: 0 }
-    );
-  }, [transactions]);
-
-  const balance = useMemo(() => {
-    const accountsOpeningSum = accounts.reduce(
-      (sum, account) => sum + Number(account.opening_balance),
-      0
-    );
-    return accountsOpeningSum + totals.income - totals.expense;
-  }, [accounts, totals]);
-
-  const formatMoney = useCallback(
-    (value: number) => {
-      return new Intl.NumberFormat(locale === "ne" ? "ne-NP" : "en-NP", {
-        style: "currency",
-        currency: "NPR",
-      }).format(value);
-    },
-    [locale]
-  );
-
-  async function setLanguage(nextLocale: WorkspaceLocale) {
-    setLocale(nextLocale);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("smart_khata_locale", nextLocale);
-    }
-    const supabase = getSupabaseBrowserClient();
-    if (supabase) {
-      await supabase.from("profiles").update({ locale: nextLocale }).eq("id", user.id);
-    }
-  }
-
-  async function saveAccount(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) {
-      setNotice(t.dbUnavailable);
-      return;
-    }
-    const formElement = event.currentTarget;
-    const form = new FormData(formElement);
-    try {
-      const payload = {
-        name: String(form.get("name")),
-        account_type: String(form.get("type")),
-        opening_balance: Number(form.get("openingBalance") || 0),
-      };
-      const { error } = editingAccount
-        ? await supabase.from("accounts").update(payload).eq("id", editingAccount.id)
-        : await supabase.from("accounts").insert({ user_id: user.id, ...payload });
-      if (error) {
-        setNotice(error.message);
-        return;
-      }
-      formElement.reset();
-      setNotice(editingAccount ? t.transactionUpdated : t.accountSaved);
-      setEditingAccount(null);
-      setShowAccountForm(false);
-      load();
-    } catch {
-      setNotice(t.saveAccountError);
-    }
-  }
-
-  async function saveTransaction(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) {
-      setNotice(t.dbUnavailable);
-      return;
-    }
-    const formElement = event.currentTarget;
-    const form = new FormData(formElement);
-    let categoryId = String(form.get("category")) || null;
-    const newCategoryNe = String(form.get("newCategory_ne") || "").trim();
-    const newCategoryEn = String(form.get("newCategory_en") || "").trim();
-    if (newCategoryNe || newCategoryEn) {
-      const parentCategoryId = String(form.get("mainCategory") || "");
-      if (!parentCategoryId || !newCategoryNe || !newCategoryEn) { setNotice("Please complete the main category and both category names."); return; }
-      const categoryResult = await supabase.from("categories").insert({ user_id: user.id, name_ne: newCategoryNe, name_en: newCategoryEn, kind: String(form.get("kind")), parent_id: parentCategoryId, is_main: false }).select("id").single();
-      if (categoryResult.error) { setNotice(categoryResult.error.message); return; }
-      categoryId = categoryResult.data.id;
-    }
-    const payload = {
-      user_id: user.id,
-      account_id: String(form.get("account")),
-      category_id: categoryId,
-      kind: String(form.get("kind")),
-      amount: Number(form.get("amount")),
-      transaction_date: String(form.get("date")),
-      note: String(form.get("note")) || null,
-    };
-
-    try {
-      const result = editingTransaction
-        ? await supabase.from("transactions").update(payload).eq("id", editingTransaction.id)
-        : await supabase.from("transactions").insert(payload);
-
-      if (result.error) {
-        setNotice(result.error.message);
-        return;
-      }
-      formElement.reset();
-      setNotice(editingTransaction ? t.transactionUpdated : t.transactionSaved);
-      setEditingTransaction(null);
-      setShowTransactionForm(false);
-      load();
-    } catch {
-      setNotice(t.saveTransactionError);
-    }
-  }
-
-  async function seedDefaultMainCategories() {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) {
-      setNotice(t.dbUnavailable);
-      return;
-    }
-
-    const { data: existingCategories, error: existingCategoriesError } = await supabase
-      .from("categories")
-      .select("kind,name_en")
-      .eq("user_id", user.id)
-      .eq("is_main", true);
-    if (existingCategoriesError) {
-      setNotice(existingCategoriesError.message);
-      return;
-    }
-
-    const rows = (Object.keys(starterMainCategories) as Array<"income" | "expense">).flatMap((kind) =>
-      starterMainCategories[kind].map(({ en, ne }) => ({
-        user_id: user.id,
-        name_ne: ne,
-        name_en: en,
-        kind,
-        parent_id: null,
-        is_main: true,
-      }))
-    ).filter((row) => !existingCategories?.some((category) => category.kind === row.kind && category.name_en === row.name_en));
-
-    if (!rows.length) {
-      setNotice(locale === "ne" ? "डिफल्ट मुख्य श्रेणीहरू पहिले नै छन्।" : "Default main categories already exist.");
-      load();
-      return;
-    }
-    const { error } = await supabase.from("categories").insert(rows);
-    if (error) {
-      setNotice(error.message);
-      return;
-    }
-    setNotice(locale === "ne" ? "डिफल्ट मुख्य श्रेणीहरू तयार भए।" : "Default main categories are ready.");
-    load();
-  }
-
-  async function removeTransaction(id: string) {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) return;
-    setConfirmDialog({
-      title: locale === "ne" ? "के तपाईं पक्का हुनुहुन्छ?" : "Are you sure?",
-      message: t.deleteConfirm,
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          const { error } = await supabase.from("transactions").delete().eq("id", id);
-          if (error) {
-            setNotice(error.message);
-            return;
-          }
-          setNotice(t.transactionDeleted);
-          load();
-        } catch {
-          setNotice(t.deleteTransactionError);
-        }
-      },
-    });
-  }
-
-  async function saveCategory(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) return;
-    const formElement = event.currentTarget;
-    const form = new FormData(formElement);
-    try {
-      const mode = String(form.get("mode")) as "main" | "sub";
-      const payload = {
-        user_id: user.id,
-        name_ne: String(form.get("name_ne")).trim(),
-        name_en: String(form.get("name_en")).trim(),
-        kind: String(form.get("kind")),
-        parent_id: mode === "main" ? null : String(form.get("parentCategory")),
-        is_main: mode === "main",
-      };
-      if (!payload.name_ne || !payload.name_en || (mode === "sub" && !payload.parent_id)) { setNotice("Please complete all category fields."); return; }
-      const { error } = editingCategory
-        ? await supabase.from("categories").update(payload).eq("id", editingCategory.id)
-        : await supabase.from("categories").insert(payload);
-      if (error) {
-        setNotice(error.message);
-        return;
-      }
-      formElement.reset();
-      setNotice(t.categorySaved);
-      setCategoryFormMode(null);
-      setEditingCategory(null);
-      load();
-    } catch {
-      setNotice(t.saveCategoryError);
-    }
-  }
-
-  async function removeCategory(id: string) {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) return;
-    setConfirmDialog({
-      title: locale === "ne" ? "के तपाईं पक्का हुनुहुन्छ?" : "Are you sure?",
-      message: t.deleteConfirm,
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          const target = categories.find((category) => category.id === id);
-          if (target?.is_main) await supabase.from("categories").delete().eq("parent_id", id);
-          const { error } = await supabase.from("categories").delete().eq("id", id);
-          if (error) {
-            setNotice(error.message);
-            return;
-          }
-          setNotice(t.categoryDeleted);
-          load();
-        } catch {
-          setNotice(t.deleteCategoryError);
-        }
-      },
-    });
-  }
-
-  async function addCategoryFromTransaction(name: string, kind: "income" | "expense", parentId: string) {
-    const supabase = getSupabaseBrowserClient();
-    if (!supabase) return null;
-    const { data, error } = await supabase.from("categories").insert({ user_id: user.id, name_ne: name, name_en: name, kind, parent_id: parentId, is_main: false }).select("id").single();
-    if (error) { setNotice(error.message); return null; }
-    await load();
-    return data?.id ?? null;
-  }
-
-  function editTransaction(item: Transaction) {
-    setEditingTransaction(item);
-    handlePageChange("transactions");
-    setShowTransactionForm(true);
-  }
-
-  async function startTransaction(kind: "income" | "expense" = "expense") {
-    // A fresh session can open this modal before categories have reached the
-    // browser. Refresh first so the dropdown is populated on its first tap.
-    if (!categories.some((category) => category.kind === kind && category.is_main)) await load();
-    setEditingTransaction(null);
-    setNewTransactionKind(kind);
-    handlePageChange("transactions");
-    setShowTransactionForm(true);
-  }
-
-  async function signOut() {
-    setConfirmDialog({
-      title: locale === "ne" ? "लग आउट गर्ने हो?" : "Sign Out?",
-      message: locale === "ne" ? "के तपाईं आफ्नो खाताबाट बाहिर निस्कन चाहनुहुन्छ?" : "Are you sure you want to sign out from your account?",
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        const supabase = getSupabaseBrowserClient();
-        if (supabase) {
-          await supabase.auth.signOut();
-        }
-      },
-    });
-  }
-
   const initial = (user.user_metadata.full_name || user.email || "U")
     .slice(0, 1)
     .toUpperCase();
-
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter((item) => {
-      const category = categories.find((entry) => entry.id === item.category_id)?.name_ne ?? "";
-      const term = query.trim().toLowerCase();
-      return (
-        (typeFilter === "all" || item.kind === typeFilter) &&
-        (!term || `${item.note ?? ""} ${category}`.toLowerCase().includes(term))
-      );
-    });
-  }, [transactions, categories, query, typeFilter]);
-
-  // Navigate function passed to children (updates React state and browser URL bar without reloading)
-  const handlePageChange = (targetPage: Page) => {
-    setPage(targetPage);
-    if (typeof window !== "undefined") {
-      const path = targetPage === "dashboard" ? "/" : `/personal/${targetPage}`;
-      window.history.pushState({ page: targetPage }, "", path);
-    }
-  };
 
   // If a planning page is selected, wrap the FinanceModule inside the WorkspaceFrame
   if (financialPages.includes(page as FinanceSection)) {
@@ -576,7 +95,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
         locale={locale}
         setLocale={setLanguage}
         page={page}
-        setPage={handlePageChange}
+        setPage={setPage}
         mobileMenuOpen={mobileMenuOpen}
         setMobileMenuOpen={setMobileMenuOpen}
         onAddTransaction={startTransaction}
@@ -595,7 +114,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
       locale={locale}
       setLocale={setLanguage}
       page={page}
-      setPage={handlePageChange}
+      setPage={setPage}
       mobileMenuOpen={mobileMenuOpen}
       setMobileMenuOpen={setMobileMenuOpen}
       onAddTransaction={startTransaction}
@@ -626,11 +145,11 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
                 : t.manageCategories}
             </p>
           </div>
-        <div className={`title-action-buttons ${page === "categories" ? "category-page-actions" : ""}`}>
+          <div className={`title-action-buttons ${page === "categories" ? "category-page-actions" : ""}`}>
             {page === "transactions" && (
               <button
                 type="button"
-                className="primary-button page-action transaction-page-action hide-on-mobile-action"
+                className="primary-button page-action transaction-page-action"
                 onClick={() => startTransaction()}
               >
                 {t.newTransaction}
@@ -661,10 +180,10 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
         </div>
 
         {notice && (
-        <div className="workspace-notice">
-          <span className="notice-text">{notice}</span>
-          <button type="button" className="notice-close" onClick={() => setNotice("")} aria-label="Close">×</button>
-          <div className="notice-progress-bar" />
+          <div className="workspace-notice">
+            <span className="notice-text">{notice}</span>
+            <button type="button" className="notice-close" onClick={() => setNotice("")} aria-label="Close">×</button>
+            <div className="notice-progress-bar" />
           </div>
         )}
 
@@ -844,7 +363,7 @@ interface WorkspaceFrameProps {
   setPage: (page: Page) => void;
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (value: boolean) => void;
-  onAddTransaction: () => void;
+  onAddTransaction: (kind?: "income" | "expense") => void;
   onSignOut: () => void;
   t: Record<string, string>;
 }
@@ -1035,20 +554,29 @@ function WorkspaceFrame({
 
         {children}
 
-        {/* Floating Action Button for Transactions on Mobile */}
+        {/* Floating Action Buttons for Transactions on Mobile */}
         {page === "transactions" && (
-          <button
-            type="button"
-            className="mobile-action-fab"
-            aria-label={t.newTransaction}
-            onClick={onAddTransaction}
-          >
-            +
-          </button>
+          <div className="mobile-fab-container">
+            <button
+              type="button"
+              className="mobile-action-fab expense-fab"
+              aria-label={locale === "ne" ? "खर्च थप्नुहोस्" : "Add Expense"}
+              title={locale === "ne" ? "खर्च थप्नुहोस्" : "Add Expense"}
+              onClick={() => onAddTransaction("expense")}
+            >
+              −
+            </button>
+            <button
+              type="button"
+              className="mobile-action-fab income-fab"
+              aria-label={locale === "ne" ? "आम्दानी थप्नुहोस्" : "Add Income"}
+              title={locale === "ne" ? "आम्दानी थप्नुहोस्" : "Add Income"}
+              onClick={() => onAddTransaction("income")}
+            >
+              +
+            </button>
+          </div>
         )}
-
-        {/* Native bottom navigation bar for mobile app experience */}
-        {/* <MobileBottomNav page={page} setPage={setPage} t={t} onOpenMoreMenu={() => setMobileMoreOpen(true)} /> */}
       </main>
 
       {/* Slide-up Bottom Sheet Modal for Mobile "More" Hub */}

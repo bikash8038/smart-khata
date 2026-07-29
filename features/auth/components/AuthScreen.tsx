@@ -76,18 +76,18 @@ const authTranslations = {
 
 export function AuthScreen() {
   const [screen, setScreen] = useState<Screen>("signin");
-  const [locale, setLocale] = useState<WorkspaceLocale>("en");
+  const [locale, setLocale] = useState<WorkspaceLocale>(() => {
+    if (typeof window !== "undefined") {
+      const savedLocale = localStorage.getItem("smart_khata_locale") as WorkspaceLocale | null;
+      if (savedLocale === "en" || savedLocale === "ne") {
+        return savedLocale;
+      }
+    }
+    return "en";
+  });
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const isConfigured = Boolean(getSupabaseBrowserClient());
-
-  // Load language preference from localStorage on mount
-  useEffect(() => {
-    const savedLocale = localStorage.getItem("smart_khata_locale") as WorkspaceLocale | null;
-    if (savedLocale === "en" || savedLocale === "ne") {
-      setLocale(savedLocale);
-    }
-  }, []);
 
   useEffect(() => {
     if (!message) return;
