@@ -47,6 +47,7 @@ export function useWorkspaceData(
   const [loading, setLoading] = useState(true);
   const isCreatingStarterCategories = useRef(false);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
+  const [userRole, setUserRole] = useState<"user" | "admin" | "super_admin">("user");
 
   // Fetch all user ledger data
   const load = useCallback(async () => {
@@ -54,7 +55,7 @@ export function useWorkspaceData(
     if (!supabase) return;
     setLoading(true);
     try {
-      const [accountResult, categoryResult, transactionResult] = await Promise.all([
+      const [accountResult, categoryResult, transactionResult, profileResult] = await Promise.all([
         supabase
           .from("accounts")
           .select("id,name,account_type,opening_balance")
@@ -69,6 +70,11 @@ export function useWorkspaceData(
           .select("id,amount,kind,transaction_date,note,account_id,category_id,created_at")
           .order("transaction_date", { ascending: false })
           .order("created_at", { ascending: false }),
+        supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single(),
       ]);
 
       setAccounts((accountResult.data ?? []) as Account[]);
@@ -107,6 +113,10 @@ export function useWorkspaceData(
 
       setCategories(loadedCategories);
       setTransactions([...(transactionResult.data ?? []) as Transaction[]].sort((a, b) => b.transaction_date.localeCompare(a.transaction_date) || (b.created_at ?? "").localeCompare(a.created_at ?? "")));
+
+      if (profileResult.data?.role) {
+        setUserRole(profileResult.data.role as "user" | "admin" | "super_admin");
+      }
 
       if (accountResult.error || categoryResult.error || transactionResult.error) {
         const categorySchemaIsMissing = Boolean(categoryResult.error && /(?:is_main|parent_id)/i.test(categoryResult.error.message));
@@ -423,6 +433,7 @@ export function useWorkspaceData(
     categories,
     transactions,
     filteredTransactions,
+    userRole,
     totals,
     balance,
     loading,

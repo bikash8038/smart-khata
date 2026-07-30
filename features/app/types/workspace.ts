@@ -1,8 +1,16 @@
 import type { FinanceSection } from "../../finance/components/FinanceModule";
 import type { WorkspaceLocale } from "../content/personal-copy";
 
-export type PersonalPage = "dashboard" | "transactions" | "accounts" | "categories";
+export type PersonalPage = "dashboard" | "transactions" | "accounts" | "categories" | "users";
 export type Page = PersonalPage | FinanceSection;
+
+export interface UserProfile {
+  id: string;
+  full_name: string;
+  email: string | null;
+  role: "user" | "admin" | "super_admin";
+  created_at: string;
+}
 
 export interface Account {
   id: string;

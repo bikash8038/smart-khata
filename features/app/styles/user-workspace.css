@@ -455,3 +455,108 @@
     padding: 0 10px;
   }
 }
+
+/* Admin User Management styles */
+.user-management-section {
+  margin-top: 18px;
+}
+.user-management-toolbar {
+  margin-bottom: 24px;
+}
+.user-table-container {
+  overflow-x: auto;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.02);
+}
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9rem;
+}
+.user-table th,
+.user-table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid #f0fdfa;
+}
+.user-table th {
+  background: #f0fdfa;
+  color: var(--color-primary);
+  font-weight: 750;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+}
+.user-table tr:hover {
+  background-color: #fafdfc;
+}
+.user-table tr.current-user-row {
+  background-color: #f0fffc;
+}
+.user-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.current-user-badge {
+  background-color: var(--color-primary);
+  color: #fff;
+  font-size: 0.72rem;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+.user-role-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.user-role-badge.user {
+  background-color: #e2e8f0;
+  color: #475569;
+}
+.user-role-badge.admin {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+.user-role-badge.super_admin {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+.role-actions-dropdown select {
+  min-height: 32px;
+  padding: 0 24px 0 8px !important;
+  border: 1px solid #cceee9;
+  border-radius: 6px;
+  background-color: #fff;
+  color: var(--color-primary);
+  font-size: 0.8rem;
+  font-weight: 750;
+  cursor: pointer;
+  outline: none;
+}
+.role-actions-dropdown select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+.no-actions-text {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+.error-notice {
+  background-color: #fff1f2 !important;
+  border-color: #fecdd3 !important;
+  color: #be123c !important;
+}
+.error-notice::before {
+  content: "⚠" !important;
+  background-color: #e11d48 !important;
+}
+

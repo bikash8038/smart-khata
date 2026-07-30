@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { Page, FinanceSection } from "../types/workspace";
 
 const financialPages: FinanceSection[] = ["budgets", "loans", "goals", "reports", "notifications"];
-const pages: Page[] = ["dashboard", "transactions", "accounts", "categories", ...financialPages];
+const pages: Page[] = ["dashboard", "transactions", "accounts", "categories", "users", ...financialPages];
 
 export function useWorkspaceNavigation(initialPage?: string) {
   const [page, setPage] = useState<Page>(

@@ -23,6 +23,7 @@ import { Modal } from "./Modal";
 import { FinancialCharts } from "./FinancialCharts";
 import { AlertModal } from "../../../components/ui/AlertModal";
 import { PageSkeleton } from "../../../components/ui/AppSkeleton";
+import { UserManagement } from "./UserManagement";
 
 // Import styles
 import "../styles/user-workspace.css";
@@ -101,6 +102,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
         onAddTransaction={startTransaction}
         onSignOut={signOut}
         t={t}
+        userRole={userRole}
       >
         <FinanceModule section={page as FinanceSection} user={user} t={t} locale={locale} />
       </WorkspaceFrame>
@@ -120,6 +122,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
       onAddTransaction={startTransaction}
       onSignOut={signOut}
       t={t}
+      userRole={userRole}
     >
       <section className="workspace-page">
         <div className="page-title">
@@ -133,7 +136,9 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
                 ? t.transactions
                 : page === "accounts"
                 ? t.accounts
-                : t.categories}
+                : page === "categories"
+                ? t.categories
+                : t.userManagement}
             </h1>
             <p>
               {page === "dashboard"
@@ -142,7 +147,9 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
                 ? t.manageTransactions
                 : page === "accounts"
                 ? t.noAccounts
-                : t.manageCategories}
+                : page === "categories"
+                ? t.manageCategories
+                : t.adminPanel}
             </p>
           </div>
           <div className={`title-action-buttons ${page === "categories" ? "category-page-actions" : ""}`}>
@@ -275,6 +282,15 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
               <CategoryList items={categories} t={t} locale={locale} onEdit={(category) => { setEditingCategory(category); setCategoryFormMode(category.is_main ? "main" : "sub"); }} onDelete={removeCategory} />
             )}
 
+            {page === "users" && (
+              <UserManagement
+                user={user}
+                locale={locale}
+                t={t}
+                currentUserRole={userRole}
+              />
+            )}
+
             {(page === "dashboard" || page === "transactions") && (
               <>
                 {page === "transactions" && (
@@ -366,6 +382,7 @@ interface WorkspaceFrameProps {
   onAddTransaction: (kind?: "income" | "expense") => void;
   onSignOut: () => void;
   t: Record<string, string>;
+  userRole: "user" | "admin" | "super_admin";
 }
 
 function WorkspaceFrame({
@@ -381,6 +398,7 @@ function WorkspaceFrame({
   onAddTransaction,
   onSignOut,
   t,
+  userRole,
 }: WorkspaceFrameProps) {
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const primary: Array<[Page, string]> = [
@@ -389,6 +407,10 @@ function WorkspaceFrame({
     ["accounts", t.accounts],
     ["categories", t.categories],
   ];
+
+  if (userRole === "admin" || userRole === "super_admin") {
+    primary.push(["users", t.userManagement]);
+  }
 
   const planning: Array<[Page, string]> = [
     ["budgets", t.budgets],
@@ -452,6 +474,12 @@ function WorkspaceFrame({
         return (
           <svg className="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+        );
+      case "users":
+        return (
+          <svg className="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
         );
       default:
@@ -661,6 +689,19 @@ function WorkspaceFrame({
                 <span className="grid-icon-circle pink">{getPageIcon("notifications")}</span>
                 <span className="grid-label">{t.notifications}</span>
               </button>
+              {(userRole === "admin" || userRole === "super_admin") && (
+                <button
+                  type="button"
+                  className={`bottom-sheet-item ${page === "users" ? "active" : ""}`}
+                  onClick={() => {
+                    setPage("users");
+                    setMobileMoreOpen(false);
+                  }}
+                >
+                  <span className="grid-icon-circle teal">{getPageIcon("users")}</span>
+                  <span className="grid-label">{t.userManagement}</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
