@@ -41,6 +41,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
     categories,
     transactions,
     filteredTransactions,
+    userRole,
     totals,
     balance,
     loading,
