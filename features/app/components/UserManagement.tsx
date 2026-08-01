@@ -19,21 +19,50 @@ export function UserManagement({ user, locale, t, currentUserRole }: UserManagem
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [notice, setNotice] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
+  // Edit user credential states (Super Admin)
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [editUsername, setEditUsername] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [showEditPassword, setShowEditPassword] = useState(false);
+  const [updatingCredentials, setUpdatingCredentials] = useState(false);
+
   const loadUsers = async () => {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // 1. Try fetching with username and email
+      let result = await supabase
         .from("profiles")
-        .select("id, full_name, email, role, created_at")
+        .select("id, full_name, email, role, created_at, username")
         .order("created_at", { ascending: false });
 
-      if (error) {
-        throw error;
+      if (result.error && (result.error.code === "42703" || result.error.message?.includes("username") || result.error.message?.includes("schema cache"))) {
+        // 2. Fallback to email only
+        const emailOnlyResult = await supabase
+          .from("profiles")
+          .select("id, full_name, email, role, created_at")
+          .order("created_at", { ascending: false });
+
+        if (emailOnlyResult.error && (emailOnlyResult.error.code === "42703" || emailOnlyResult.error.message?.includes("email") || emailOnlyResult.error.message?.includes("schema cache"))) {
+          // 3. Fallback to basic columns
+          const basicResult = await supabase
+            .from("profiles")
+            .select("id, full_name, role, created_at")
+            .order("created_at", { ascending: false });
+
+          if (basicResult.error) throw basicResult.error;
+          result = basicResult;
+        } else if (emailOnlyResult.error) {
+          throw emailOnlyResult.error;
+        } else {
+          result = emailOnlyResult;
+        }
+      } else if (result.error) {
+        throw result.error;
       }
 
-      setUsers((data ?? []) as UserProfile[]);
+      setUsers((result.data ?? []) as UserProfile[]);
     } catch {
       setNotice({
         text: locale === "ne" ? "प्रयोगकर्ता विवरणहरू लोड गर्न सकिएन।" : "Failed to load user profiles.",
@@ -44,8 +73,53 @@ export function UserManagement({ user, locale, t, currentUserRole }: UserManagem
     }
   };
 
+  const startEditUser = (profile: UserProfile) => {
+    setEditingUser(profile);
+    setEditUsername(profile.username || profile.email?.split("@")[0] || "");
+    setEditPassword("");
+    setShowEditPassword(false);
+  };
+
+  const handleUpdateCredentials = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    setUpdatingCredentials(true);
+    try {
+      const { error } = await supabase.rpc("admin_update_user", {
+        target_user_id: editingUser.id,
+        new_username: editUsername,
+        new_password: editPassword || null,
+      });
+
+      if (error) throw error;
+
+      setNotice({
+        text: t.credentialsUpdated || "User credentials updated successfully.",
+        type: "success",
+      });
+      setEditingUser(null);
+      loadUsers();
+    } catch (err) {
+      const error = err as Error;
+      setNotice({
+        text: error.message || (t.credentialsUpdateError || "Failed to update user credentials."),
+        type: "error",
+      });
+    } finally {
+      setUpdatingCredentials(false);
+    }
+  };
+
   useEffect(() => {
-    loadUsers();
+    const timer = setTimeout(() => {
+      loadUsers();
+    }, 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRoleChange = async (targetUserId: string, newRole: "user" | "admin" | "super_admin") => {
@@ -79,7 +153,7 @@ export function UserManagement({ user, locale, t, currentUserRole }: UserManagem
         text: t.userRoleUpdated || "User role updated successfully.",
         type: "success",
       });
-    } catch (err: any) {
+    } catch {
       setNotice({
         text: t.errorRoleUpdate || "Failed to update user role.",
         type: "error",
@@ -198,16 +272,28 @@ export function UserManagement({ user, locale, t, currentUserRole }: UserManagem
                   {currentUserRole === "super_admin" && (
                     <td className="actions-cell">
                       {profile.id !== user.id ? (
-                        <div className="role-actions-dropdown">
-                          <select
-                            value={profile.role}
-                            aria-label={t.role}
-                            onChange={(e) => handleRoleChange(profile.id, e.target.value as any)}
+                        <div className="role-actions-container" style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                          <div className="role-actions-dropdown">
+                            <select
+                              value={profile.role}
+                              aria-label={t.role}
+                              onChange={(e) => handleRoleChange(profile.id, e.target.value as "user" | "admin" | "super_admin")}
+                            >
+                              <option value="user">{t.demoteUser || "Make User"}</option>
+                              <option value="admin">{t.promoteAdmin || "Make Admin"}</option>
+                              <option value="super_admin">{t.promoteSuperAdmin || "Make Super Admin"}</option>
+                            </select>
+                          </div>
+                          
+                          <button
+                            type="button"
+                            className="outline-button edit-user-btn"
+                            title={t.editUserTitle || "Edit User Credentials"}
+                            onClick={() => startEditUser(profile)}
+                            style={{ padding: "0 8px", minHeight: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
                           >
-                            <option value="user">{t.demoteUser || "Make User"}</option>
-                            <option value="admin">{t.promoteAdmin || "Make Admin"}</option>
-                            <option value="super_admin">{t.promoteSuperAdmin || "Make Super Admin"}</option>
-                          </select>
+                            ✏️
+                          </button>
                         </div>
                       ) : (
                         <span className="no-actions-text">{locale === "ne" ? "परिवर्तन गर्न नमिल्ने" : "Cannot edit self"}</span>
@@ -218,6 +304,80 @@ export function UserManagement({ user, locale, t, currentUserRole }: UserManagem
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {editingUser && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={() => setEditingUser(null)}>
+          <div
+            className="modal-content"
+            role="dialog"
+            aria-modal="true"
+            onMouseDown={(event) => event.stopPropagation()}
+            style={{ maxWidth: "450px", overflow: "hidden" }}
+          >
+            <div className="delete-modal-header">
+              <h3>{t.editUserTitle}</h3>
+              <button
+                type="button"
+                className="delete-modal-close-btn"
+                onClick={() => setEditingUser(null)}
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={handleUpdateCredentials}>
+              <div className="delete-modal-body">
+                <div className="form-group">
+                  <label htmlFor="edit-username">{t.usernameLabel || "Username"}</label>
+                  <input
+                    type="text"
+                    id="edit-username"
+                    value={editUsername}
+                    onChange={(e) => setEditUsername(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="edit-password">{t.editPassword || "New Password"}</label>
+                  <div className="password-input-wrapper">
+                    <input
+                      type={showEditPassword ? "text" : "password"}
+                      id="edit-password"
+                      placeholder={locale === "ne" ? "नयाँ पासवर्ड हाल्नुहोस्" : "Enter new password"}
+                      value={editPassword}
+                      onChange={(e) => setEditPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle-btn"
+                      onClick={() => setShowEditPassword(!showEditPassword)}
+                    >
+                      {showEditPassword ? "👁️" : "👁️‍🗨️"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="delete-modal-footer">
+                <button
+                  type="button"
+                  className="outline-button"
+                  onClick={() => setEditingUser(null)}
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="submit"
+                  className="primary-button"
+                  style={{ background: "var(--primary-color, #0d9488)", color: "#fff", border: "0", borderRadius: "8px", fontWeight: "600", padding: "0.6rem 1.25rem", cursor: "pointer" }}
+                  disabled={updatingCredentials}
+                >
+                  {updatingCredentials ? "..." : t.updateCredentialsBtn}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

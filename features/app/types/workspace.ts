@@ -1,7 +1,7 @@
 import type { FinanceSection } from "../../finance/components/FinanceModule";
 import type { WorkspaceLocale } from "../content/personal-copy";
 
-export type PersonalPage = "dashboard" | "transactions" | "accounts" | "categories" | "users";
+export type PersonalPage = "dashboard" | "transactions" | "accounts" | "categories" | "users" | "profile";
 export type Page = PersonalPage | FinanceSection;
 
 export interface UserProfile {
@@ -10,6 +10,11 @@ export interface UserProfile {
   email: string | null;
   role: "user" | "admin" | "super_admin";
   created_at: string;
+  username?: string | null;
+  avatar_url?: string | null;
+  is_verified?: boolean;
+  status?: string;
+  scheduled_deletion_date?: string | null;
 }
 
 export interface Account {
@@ -26,6 +31,7 @@ export interface Category {
   kind: "income" | "expense";
   parent_id: string | null;
   is_main: boolean;
+  is_system: boolean;
 }
 
 export interface Transaction {

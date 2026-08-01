@@ -25,6 +25,9 @@ const authTranslations = {
     localPreview: "This is a local preview. Real registration and login will begin after connecting a secure database.",
     fullName: "Full Name",
     email: "Email Address",
+    emailOrUsername: "Email or Username",
+    usernameLabel: "Username",
+    usernamePatternNotice: "Username can only contain lowercase letters, numbers, dot (.) and underscore (_)",
     password: "Password",
     loading: "Please wait...",
     signinBtn: "Sign In",
@@ -45,7 +48,7 @@ const authTranslations = {
     title: "आफ्नो हिसाबलाई व्यवस्थित र सुरक्षित राख्नुहोस्।",
     description: "व्यक्तिगत वा व्यवसायिक आम्दानी, खर्च र वित्तीय योजना एउटै सुरक्षित ठाउँमा व्यवस्थापन गर्नुहोस्।",
     bullets: [
-      "तपाईंको data केवल तपाईंको खातासँग जोडिएको हुन्छ",
+      "तपाईंको data केवलं तपाईंको खातासँग जोडिएको हुन्छ",
       "नेपाली र English दुवै भाषामा प्रयोग गर्न मिल्छ",
       "मोबाइल, ट्याब्लेट र कम्प्युटरमा सहज"
     ],
@@ -57,6 +60,9 @@ const authTranslations = {
     localPreview: "यो स्थानीय preview हो। सुरक्षित database जडान भएपछि मात्र यहाँबाट वास्तविक दर्ता र लग इन सुरु हुन्छ।",
     fullName: "पूरा नाम",
     email: "इमेल ठेगाना",
+    emailOrUsername: "इमेल वा युजरनेम",
+    usernameLabel: "युजरनेम",
+    usernamePatternNotice: "युजरनेममा साना अंग्रेजी अक्षर, अंक, थोप्लो (.) र अन्डरस्कोर (_) मात्र राख्न मिल्छ",
     password: "पासवर्ड",
     loading: "कृपया पर्खनुहोस्...",
     signinBtn: "लग इन",
@@ -108,26 +114,49 @@ export function AuthScreen() {
     if (!supabase) return;
 
     const form = new FormData(event.currentTarget);
-    const email = String(form.get("email") ?? "").trim();
+    const emailOrUsernameInput = String(form.get("email") ?? "").trim();
     const password = String(form.get("password") ?? "");
     const fullName = String(form.get("fullName") ?? "").trim();
+    const username = String(form.get("username") ?? "").trim();
     setMessage("");
     setIsLoading(true);
 
     try {
       if (screen === "signin") {
+        let email = emailOrUsernameInput;
+        if (!emailOrUsernameInput.includes("@")) {
+          // Look up user email by username
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("email")
+            .eq("username", emailOrUsernameInput.toLowerCase())
+            .single();
+
+          if (profileError || !profile || !profile.email) {
+            throw new Error(locale === "ne" ? "युजरनेम फेला परेन वा गलत छ।" : "Username not found.");
+          }
+          email = profile.email;
+        }
+
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         setMessage(t.loginSuccess);
       }
 
       if (screen === "signup") {
+        // Enforce username validation pattern: only english lowercase, digits, dot and underscore
+        const usernameRegex = /^[a-z0-9._]+$/;
+        if (!usernameRegex.test(username)) {
+          throw new Error(t.usernamePatternNotice);
+        }
+
         const { error } = await supabase.auth.signUp({
-          email,
+          email: emailOrUsernameInput,
           password,
           options: {
             data: {
               full_name: fullName,
+              username: username,
               locale: locale
             }
           },
@@ -137,7 +166,7 @@ export function AuthScreen() {
       }
 
       if (screen === "forgot") {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        const { error } = await supabase.auth.resetPasswordForEmail(emailOrUsernameInput, {
           redirectTo: `${window.location.origin}/reset-password`,
         });
         if (error) throw error;
@@ -222,14 +251,33 @@ export function AuthScreen() {
 
         <form onSubmit={handleSubmit} className="auth-form">
           {screen === "signup" && (
-            <div className="input-group">
-              <span className="input-icon">👤</span>
-              <input name="fullName" type="text" placeholder={t.fullName} autoComplete="name" required />
-            </div>
+            <>
+              <div className="input-group">
+                <span className="input-icon">👤</span>
+                <input name="fullName" type="text" placeholder={t.fullName} autoComplete="name" required />
+              </div>
+              <div className="input-group">
+                <span className="input-icon">🏷️</span>
+                <input 
+                  name="username" 
+                  type="text" 
+                  placeholder={t.usernameLabel} 
+                  pattern="^[a-z0-9._]+$" 
+                  title={t.usernamePatternNotice}
+                  required 
+                />
+              </div>
+            </>
           )}
           <div className="input-group">
             <span className="input-icon">✉️</span>
-            <input name="email" type="email" placeholder={t.email} autoComplete="email" required />
+            <input 
+              name="email" 
+              type={screen === "signin" ? "text" : "email"} 
+              placeholder={screen === "signin" ? t.emailOrUsername : t.email} 
+              autoComplete="email" 
+              required 
+            />
           </div>
           {screen !== "forgot" && (
             <div className="input-group">

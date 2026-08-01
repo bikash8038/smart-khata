@@ -55,14 +55,14 @@ export function useWorkspaceData(
     if (!supabase) return;
     setLoading(true);
     try {
-      const [accountResult, categoryResult, transactionResult, profileResult] = await Promise.all([
+      const [accountResult, categoryResult, transactionResult, profileResult, exclusionResult] = await Promise.all([
         supabase
           .from("accounts")
           .select("id,name,account_type,opening_balance")
           .order("created_at"),
         supabase
           .from("categories")
-          .select("id,name_ne,name_en,kind,parent_id,is_main")
+          .select("id,name_ne,name_en,kind,parent_id,is_main,is_system")
           .or(`user_id.eq.${user.id},is_system.eq.true`)
           .order("name_ne"),
         supabase
@@ -72,9 +72,30 @@ export function useWorkspaceData(
           .order("created_at", { ascending: false }),
         supabase
           .from("profiles")
-          .select("role")
+          .select("role, status, scheduled_deletion_date")
           .eq("id", user.id)
-          .single(),
+          .single()
+          .then(async (res) => {
+            if (res.error && res.error.code === "42703") {
+              return supabase
+                .from("profiles")
+                .select("role")
+                .eq("id", user.id)
+                .single();
+            }
+            return res;
+          })
+          .catch(() => {
+            return supabase
+              .from("profiles")
+              .select("role")
+              .eq("id", user.id)
+              .single();
+          }),
+        supabase
+          .from("category_exclusions")
+          .select("category_id")
+          .eq("user_id", user.id)
       ]);
 
       setAccounts((accountResult.data ?? []) as Account[]);
@@ -111,11 +132,35 @@ export function useWorkspaceData(
         }
       }
 
-      setCategories(loadedCategories);
+      const excludedIds = ((exclusionResult?.data ?? []) as Array<{ category_id: string }>).map((ex) => ex.category_id);
+      const visibleCategories = loadedCategories.filter((cat) => {
+        if (excludedIds.includes(cat.id)) return false;
+        if (cat.parent_id && excludedIds.includes(cat.parent_id)) return false;
+        return true;
+      });
+
+      setCategories(visibleCategories);
       setTransactions([...(transactionResult.data ?? []) as Transaction[]].sort((a, b) => b.transaction_date.localeCompare(a.transaction_date) || (b.created_at ?? "").localeCompare(a.created_at ?? "")));
 
       if (profileResult.data?.role) {
         setUserRole(profileResult.data.role as "user" | "admin" | "super_admin");
+      }
+
+      if (profileResult.data && 'scheduled_deletion_date' in profileResult.data && profileResult.data.scheduled_deletion_date) {
+        // Automatically reverse account deletion request
+        await supabase
+          .from("profiles")
+          .update({
+            status: "Active",
+            scheduled_deletion_date: null
+          })
+          .eq("id", user.id);
+
+        setNotice(
+          locale === "ne"
+            ? "तपाईंको खाता मेटाउने अनुरोध रद्द गरिएको छ र पुन: सक्रिय गरिएको छ!"
+            : "Your account deletion request has been cancelled and reactivated!"
+        );
       }
 
       if (accountResult.error || categoryResult.error || transactionResult.error) {
@@ -329,29 +374,103 @@ export function useWorkspaceData(
     const form = new FormData(formElement);
     try {
       const mode = String(form.get("mode")) as "main" | "sub";
-      const payload = {
-        user_id: user.id,
+      const isSystemChecked = form.get("is_system") === "on";
+
+      const payload: Record<string, unknown> = {
         name_ne: String(form.get("name_ne")).trim(),
         name_en: String(form.get("name_en")).trim(),
         kind: String(form.get("kind")),
         parent_id: mode === "main" ? null : String(form.get("parentCategory")),
         is_main: mode === "main",
       };
-      if (!payload.name_ne || !payload.name_en || (mode === "sub" && !payload.parent_id)) { setNotice("Please complete all category fields."); return; }
-      const { error } = editingCategory
-        ? await supabase.from("categories").update(payload).eq("id", editingCategory.id)
-        : await supabase.from("categories").insert(payload);
-      if (error) {
-        setNotice(error.message);
+
+      if (userRole === "super_admin") {
+        payload.is_system = isSystemChecked;
+        payload.user_id = isSystemChecked ? null : user.id;
+      } else {
+        payload.is_system = false;
+        payload.user_id = user.id;
+      }
+
+      if (!payload.name_ne || !payload.name_en || (mode === "sub" && !payload.parent_id)) {
+        setNotice("Please complete all category fields.");
         return;
       }
+
+      // Duplicate validation checks (case-insensitive for both Nepali and English names)
+      const nameNe = String(payload.name_ne).trim().toLowerCase();
+      const nameEn = String(payload.name_en).trim().toLowerCase();
+      const kind = String(payload.kind);
+      const parentId = payload.parent_id ? String(payload.parent_id) : null;
+
+      if (mode === "main") {
+        const dup = categories.find((cat) => 
+          cat.is_main && 
+          cat.kind === kind && 
+          cat.id !== editingCategory?.id && 
+          (cat.name_ne.toLowerCase() === nameNe || 
+           (cat.name_en && cat.name_en.toLowerCase() === nameEn))
+        );
+        if (dup) {
+          setNotice(
+            locale === "ne"
+              ? "यो मुख्य क्याटेगोरी पहिले नै उपलब्ध छ।"
+              : "This main category already exists."
+          );
+          return;
+        }
+      } else {
+        const dup = categories.find((cat) => 
+          !cat.is_main && 
+          cat.parent_id === parentId && 
+          cat.id !== editingCategory?.id && 
+          (cat.name_ne.toLowerCase() === nameNe || 
+           (cat.name_en && cat.name_en.toLowerCase() === nameEn))
+        );
+        if (dup) {
+          setNotice(
+            locale === "ne"
+              ? "यो सब-क्याटेगोरी यस मुख्य क्याटेगोरी अन्तर्गत पहिले नै उपलब्ध छ।"
+              : "This subcategory already exists under this main category."
+          );
+          return;
+        }
+      }
+
+      if (editingCategory) {
+        if (editingCategory.is_system && userRole !== "super_admin") {
+          const { error: exclusionError } = await supabase
+            .from("category_exclusions")
+            .insert({ user_id: user.id, category_id: editingCategory.id });
+
+          if (exclusionError) throw exclusionError;
+
+          const { error: insertCopyError } = await supabase
+            .from("categories")
+            .insert(payload);
+
+          if (insertCopyError) throw insertCopyError;
+        } else {
+          const { error } = await supabase
+            .from("categories")
+            .update(payload)
+            .eq("id", editingCategory.id);
+
+          if (error) throw error;
+        }
+      } else {
+        const { error } = await supabase.from("categories").insert(payload);
+        if (error) throw error;
+      }
+
       formElement.reset();
       setNotice(t.categorySaved);
       setCategoryFormMode(null);
       setEditingCategory(null);
       load();
-    } catch {
-      setNotice(t.saveCategoryError);
+    } catch (err) {
+      const error = err as Error;
+      setNotice(error?.message || t.saveCategoryError);
     }
   }
 
@@ -365,19 +484,185 @@ export function useWorkspaceData(
         setConfirmDialog(null);
         try {
           const target = categories.find((category) => category.id === id);
-          if (target?.is_main) await supabase.from("categories").delete().eq("parent_id", id);
-          const { error } = await supabase.from("categories").delete().eq("id", id);
-          if (error) {
-            setNotice(error.message);
-            return;
+          if (!target) return;
+
+          if (target.is_system && userRole !== "super_admin") {
+            const { data: subs, error: subsError } = await supabase
+              .from("categories")
+              .select("id")
+              .eq("parent_id", id);
+
+            if (subsError) throw subsError;
+
+            const idsToExclude = [id];
+            if (subs) {
+              subs.forEach((s) => idsToExclude.push(s.id));
+            }
+
+            const rowsToInsert = idsToExclude.map((catId) => ({
+              user_id: user.id,
+              category_id: catId,
+            }));
+
+            const { error: excludeError } = await supabase
+              .from("category_exclusions")
+              .insert(rowsToInsert);
+
+            if (excludeError) throw excludeError;
+          } else {
+            if (target.is_main) {
+              await supabase.from("categories").delete().eq("parent_id", id);
+            }
+            const { error } = await supabase.from("categories").delete().eq("id", id);
+            if (error) throw error;
           }
+
           setNotice(t.categoryDeleted);
           load();
-        } catch {
-          setNotice(t.deleteCategoryError);
+        } catch (err) {
+          const error = err as Error;
+          setNotice(error?.message || t.deleteCategoryError);
         }
       },
     });
+  }
+
+  async function importCategories(parsedItems: Array<{ kind: "income" | "expense"; mainNe: string; mainEn: string; subNe: string; subEn: string }>) {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    try {
+      // Fetch all existing system categories to check duplicates in-memory
+      const { data: dbSystemCats, error: fetchError } = await supabase
+        .from("categories")
+        .select("id,name_ne,name_en,kind,parent_id,is_main,is_system")
+        .eq("is_system", true);
+
+      if (fetchError) throw fetchError;
+      const systemCats: Category[] = (dbSystemCats || []) as Category[];
+
+      const mainCategoriesMap = new Map<string, { kind: "income" | "expense"; ne: string; en: string; subs: Array<{ ne: string; en: string }> }>();
+
+      for (const item of parsedItems) {
+        const key = `${item.kind}:${item.mainEn.toLowerCase()}`;
+        if (!mainCategoriesMap.has(key)) {
+          mainCategoriesMap.set(key, {
+            kind: item.kind,
+            ne: item.mainNe,
+            en: item.mainEn,
+            subs: [],
+          });
+        }
+        if (item.subNe && item.subEn) {
+          const subsList = mainCategoriesMap.get(key)!.subs;
+          if (!subsList.some((s) => s.en.toLowerCase() === item.subEn.toLowerCase())) {
+            subsList.push({
+              ne: item.subNe,
+              en: item.subEn,
+            });
+          }
+        }
+      }
+
+      let totalImported = 0;
+
+      for (const mainCat of mainCategoriesMap.values()) {
+        let mainId = "";
+
+        // Check duplicates for main categories (case-insensitive for both Nepali and English names)
+        const existingMain = systemCats.find((cat) =>
+          cat.is_main &&
+          cat.kind === mainCat.kind &&
+          (cat.name_ne.toLowerCase() === mainCat.ne.toLowerCase() ||
+           (cat.name_en && cat.name_en.toLowerCase() === mainCat.en.toLowerCase()))
+        );
+
+        if (existingMain) {
+          mainId = existingMain.id;
+        } else {
+          const { data: newMain, error: insertMainError } = await supabase
+            .from("categories")
+            .insert({
+              user_id: null,
+              name_ne: mainCat.ne,
+              name_en: mainCat.en,
+              kind: mainCat.kind,
+              is_main: true,
+              parent_id: null,
+              is_system: true,
+            })
+            .select("id")
+            .single();
+
+          if (insertMainError) throw insertMainError;
+          mainId = newMain.id;
+          
+          systemCats.push({
+            id: mainId,
+            name_ne: mainCat.ne,
+            name_en: mainCat.en,
+            kind: mainCat.kind,
+            parent_id: null,
+            is_main: true,
+            is_system: true,
+          });
+          totalImported++;
+        }
+
+        for (const sub of mainCat.subs) {
+          // Check duplicates for subcategories under this main ID (case-insensitive for both Nepali and English names)
+          const existingSub = systemCats.find((cat) =>
+            !cat.is_main &&
+            cat.parent_id === mainId &&
+            (cat.name_ne.toLowerCase() === sub.ne.toLowerCase() ||
+             (cat.name_en && cat.name_en.toLowerCase() === sub.en.toLowerCase()))
+          );
+
+          if (!existingSub) {
+            const { data: newSub, error: insertSubError } = await supabase
+              .from("categories")
+              .insert({
+                user_id: null,
+                name_ne: sub.ne,
+                name_en: sub.en,
+                kind: mainCat.kind,
+                is_main: false,
+                parent_id: mainId,
+                is_system: true,
+              })
+              .select("id")
+              .single();
+
+            if (insertSubError) throw insertSubError;
+
+            systemCats.push({
+              id: newSub.id,
+              name_ne: sub.ne,
+              name_en: sub.en,
+              kind: mainCat.kind,
+              parent_id: mainId,
+              is_main: false,
+              is_system: true,
+            });
+            totalImported++;
+          }
+        }
+      }
+
+      setNotice(
+        locale === "ne"
+          ? `सफलतापूर्वक ${totalImported} वटा क्याटेगोरी/सब-क्याटेगोरी आयात गरियो!`
+          : `Successfully imported ${totalImported} categories/subcategories!`
+      );
+      await load();
+    } catch (err) {
+      const error = err as Error;
+      setNotice(
+        locale === "ne"
+          ? `आयात गर्न असफल भयो: ${error.message}`
+          : `Failed to import: ${error.message}`
+      );
+    }
   }
 
   async function addCategoryFromTransaction(name: string, kind: "income" | "expense", parentId: string) {
@@ -469,6 +754,7 @@ export function useWorkspaceData(
     removeTransaction,
     saveCategory,
     removeCategory,
+    importCategories,
     seedDefaultMainCategories,
     addCategoryFromTransaction,
     editTransaction,

@@ -822,3 +822,167 @@
   z-index: 99999 !important;
 }
 
+/* Categories Tabs Switcher */
+.category-tabs-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  border-bottom: 1.5px solid #e2e8f0;
+  padding-bottom: 8px;
+}
+
+.category-tab-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 16px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.category-tab-btn:hover {
+  background-color: #f1f5f9;
+  color: #1e293b;
+}
+
+.category-tab-btn.active {
+  background-color: #e6f4f2;
+  color: #0f766e;
+  box-shadow: 0 2px 8px rgba(15, 118, 110, 0.08);
+}
+
+/* Excel Import Premium Card Styles */
+.excel-import-card {
+  background: #ffffff;
+  border: 1px solid #ccfbf1;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
+}
+
+.excel-import-header h4 {
+  margin: 0 0 4px;
+  color: #0f766e;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.excel-import-subtitle {
+  margin: 0 0 16px;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.excel-drag-drop-zone {
+  border: 2px dashed #b9e4de;
+  border-radius: 8px;
+  background-color: #fafdfd;
+  padding: 24px;
+  text-align: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.excel-drag-drop-zone.drag-active {
+  border-color: #0f766e;
+  background-color: #f0fdfa;
+}
+
+.excel-file-input-hidden {
+  display: none;
+}
+
+.excel-upload-label-trigger {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.excel-upload-icon {
+  font-size: 1.8rem;
+}
+
+.excel-upload-text {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.excel-upload-hint {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.excel-preview-container {
+  margin-top: 20px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 16px;
+}
+
+.excel-preview-container h5 {
+  margin: 0 0 10px;
+  font-size: 0.88rem;
+  color: #334155;
+  font-weight: 750;
+}
+
+.excel-preview-scroll {
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.excel-preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  text-align: left;
+}
+
+.excel-preview-table th, 
+.excel-preview-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.excel-preview-table th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-weight: 750;
+  position: sticky;
+  top: 0;
+}
+
+.badge-type {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.badge-type.income {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.badge-type.expense {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.excel-preview-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+

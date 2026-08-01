@@ -24,6 +24,7 @@ import { FinancialCharts } from "./FinancialCharts";
 import { AlertModal } from "../../../components/ui/AlertModal";
 import { PageSkeleton } from "../../../components/ui/AppSkeleton";
 import { UserManagement } from "./UserManagement";
+import { ProfileSettings } from "./ProfileSettings";
 
 // Import styles
 import "../styles/user-workspace.css";
@@ -31,6 +32,7 @@ import "../styles/personal-enhancements.css";
 import "../styles/responsive-navigation.css";
 import "../styles/interaction-polish.css";
 import "../styles/dashboard-charts.css";
+import "../styles/profile-settings.css";
 
 export function UserWorkspace({ user, initialPage }: { user: User; initialPage?: string }) {
   const { locale, setLanguage, t } = useWorkspaceLocale(user);
@@ -72,6 +74,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
     removeTransaction,
     saveCategory,
     removeCategory,
+    importCategories,
     seedDefaultMainCategories,
     editTransaction,
     startTransaction,
@@ -280,7 +283,15 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
             )}
 
             {page === "categories" && (
-              <CategoryList items={categories} t={t} locale={locale} onEdit={(category) => { setEditingCategory(category); setCategoryFormMode(category.is_main ? "main" : "sub"); }} onDelete={removeCategory} />
+              <CategoryList 
+                items={categories} 
+                t={t} 
+                locale={locale} 
+                onEdit={(category) => { setEditingCategory(category); setCategoryFormMode(category.is_main ? "main" : "sub"); }} 
+                onDelete={removeCategory} 
+                userRole={userRole}
+                onImportExcel={importCategories}
+              />
             )}
 
             {page === "users" && (
@@ -289,6 +300,15 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
                 locale={locale}
                 t={t}
                 currentUserRole={userRole}
+              />
+            )}
+
+            {page === "profile" && (
+              <ProfileSettings
+                user={user}
+                locale={locale}
+                t={t}
+                onSignOut={signOut}
               />
             )}
 
@@ -352,7 +372,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
 
         {categoryFormMode && (
           <Modal onClose={() => { setCategoryFormMode(null); setEditingCategory(null); }}>
-            <CategoryForm t={t} locale={locale} mode={categoryFormMode} current={editingCategory} categories={categories} onCancel={() => { setCategoryFormMode(null); setEditingCategory(null); }} onSave={saveCategory} />
+            <CategoryForm t={t} locale={locale} mode={categoryFormMode} current={editingCategory} categories={categories} userRole={userRole} onCancel={() => { setCategoryFormMode(null); setEditingCategory(null); }} onSave={saveCategory} />
           </Modal>
         )}
         {confirmDialog && (
@@ -402,6 +422,7 @@ function WorkspaceFrame({
   userRole,
 }: WorkspaceFrameProps) {
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
+  const [isProfileExpanded, setIsProfileExpanded] = useState(false);
   const primary: Array<[Page, string]> = [
     ["dashboard", t.dashboard],
     ["transactions", t.transactions],
@@ -535,8 +556,19 @@ function WorkspaceFrame({
           {planning.map(renderNavLink)}
         </nav>
 
-        <section className="sidebar-profile">
-          <span className="workspace-avatar">{initial}</span>
+        <section 
+          className="sidebar-profile" 
+          style={{ cursor: "pointer" }}
+          onClick={() => setPage("profile")}
+        >
+          <span className="workspace-avatar" style={{ overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {user.user_metadata?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={user.user_metadata.avatar_url} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              initial
+            )}
+          </span>
           <div className="nav-text">
             <strong>{user.user_metadata.full_name || user.email}</strong>
             <small>{t.personal}</small>
@@ -544,7 +576,11 @@ function WorkspaceFrame({
               className="locale-select"
               aria-label={t.language}
               value={locale}
-              onChange={(event) => setLocale(event.target.value as WorkspaceLocale)}
+              onChange={(event) => {
+                event.stopPropagation();
+                setLocale(event.target.value as WorkspaceLocale);
+              }}
+              onClick={(event) => event.stopPropagation()}
             >
               <option value="en">{t.english}</option>
               <option value="ne">{t.nepali}</option>
@@ -558,18 +594,123 @@ function WorkspaceFrame({
         </button>
       </aside>
 
+      {/* Mobile Drawer Overlay - Gyan Punja style */}
       {mobileMenuOpen && (
-        <button
-          type="button"
-          className="mobile-menu-overlay"
-          aria-label="Close menu"
-          onClick={() => setMobileMenuOpen(false)}
-        />
+        <div className="mobile-drawer-backdrop" onClick={() => setMobileMenuOpen(false)}>
+          <div className="mobile-drawer-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="mobile-drawer-header">
+              <p className="workspace-brand">
+                <span className="brand-mark">S</span>
+                <span className="nav-text">Smart Khata</span>
+              </p>
+              <button
+                type="button"
+                className="mobile-drawer-close"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="mobile-drawer-links">
+              {primary.map(([key, label]) => (
+                <a
+                  key={key}
+                  href={`/personal/${key}`}
+                  className={`mobile-drawer-link ${page === key ? "active" : ""}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPage(key);
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  {label}
+                </a>
+              ))}
+              
+              <div className="mobile-drawer-section-title">{t.planning}</div>
+              
+              {planning.map(([key, label]) => (
+                <a
+                  key={key}
+                  href={`/personal/${key}`}
+                  className={`mobile-drawer-link ${page === key ? "active" : ""}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPage(key);
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  {label}
+                </a>
+              ))}
+            </div>
+
+            <div className="mobile-drawer-profile-section">
+              <button
+                type="button"
+                className="mobile-drawer-profile-trigger"
+                onClick={() => setIsProfileExpanded(!isProfileExpanded)}
+              >
+                <span className="workspace-avatar" style={{ overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px" }}>
+                  {user.user_metadata?.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={user.user_metadata.avatar_url} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    initial
+                  )}
+                </span>
+                <div className="profile-trigger-info">
+                  <strong>{user.user_metadata.full_name || user.email}</strong>
+                  <small>{userRole === "super_admin" ? (locale === "ne" ? "सुपर एडमिन" : "Super Admin") : userRole === "admin" ? (locale === "ne" ? "एडमिन" : "Admin") : (locale === "ne" ? "प्रयोगकर्ता" : "User")}</small>
+                </div>
+                <span className="profile-trigger-arrow">{isProfileExpanded ? "▲" : "▼"}</span>
+              </button>
+
+              {isProfileExpanded && (
+                <div className="mobile-drawer-profile-dropdown">
+                  <button
+                    type="button"
+                    className="dropdown-item-link"
+                    onClick={() => {
+                      setPage("profile");
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    👤 {locale === "ne" ? "व्यक्तिगत विवरण" : "Personal Info"}
+                  </button>
+                  <button
+                    type="button"
+                    className="dropdown-item-link"
+                    onClick={() => {
+                      setPage("profile");
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    🔒 {locale === "ne" ? "सुरक्षा र पासवर्ड" : "Privacy & Security"}
+                  </button>
+                  <button
+                    type="button"
+                    className="dropdown-item-link logout-item"
+                    onClick={() => {
+                      onSignOut();
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    ↪ {t.signOut}
+                  </button>
+                </div>
+              )}
+            </div>
+            
+          </div>
+        </div>
       )}
 
       {/* Main Content Area */}
       <main className="workspace-main">
         <header className="workspace-topbar">
+          <p className="mobile-top-brand">Smart Khata</p>
           <button
             type="button"
             className="mobile-menu-toggle"
@@ -578,7 +719,6 @@ function WorkspaceFrame({
           >
             ☰
           </button>
-          <p className="mobile-top-brand">Smart Khata</p>
         </header>
 
         {children}

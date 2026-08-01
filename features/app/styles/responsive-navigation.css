@@ -219,20 +219,7 @@
   }
   
   .workspace-sidebar {
-    display: flex !important;
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 282px !important;
-    min-height: 100vh;
-    transform: translateX(-105%);
-    transition: transform 0.22s ease;
-    box-shadow: 16px 0 40px rgba(7, 95, 91, 0.24);
-  }
-  
-  .workspace-sidebar.mobile-open {
-    transform: translateX(0);
+    display: none !important;
   }
   
   .workspace-sidebar .nav-text,
@@ -587,5 +574,240 @@
   @keyframes slideUp {
     from { transform: translateY(100%); }
     to { transform: translateY(0); }
+  }
+
+  /* Mobile Drawer Overlay (Gyan Punja style) */
+  .mobile-drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background-color: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .mobile-drawer-panel {
+    width: 100%;
+    max-width: 320px;
+    height: 100vh;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -8px 0 30px rgba(15, 23, 42, 0.15);
+    animation: slideLeft 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 1.25rem;
+    overflow-y: auto;
+    box-sizing: border-box;
+  }
+
+  @keyframes slideLeft {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+
+  .mobile-drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    box-sizing: border-box;
+  }
+
+  .mobile-drawer-header .workspace-brand {
+    margin: 0 !important;
+    color: var(--primary-color, #0f766e) !important;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .mobile-drawer-close {
+    background: #f1f5f9;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 1.4rem;
+    font-weight: 700;
+    cursor: pointer;
+    color: #64748b;
+    display: grid;
+    place-items: center;
+    line-height: 1;
+    padding: 0;
+  }
+
+  .mobile-drawer-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+    box-sizing: border-box;
+  }
+
+  .mobile-drawer-link {
+    display: block;
+    padding: 0.65rem 0.85rem;
+    color: #334155 !important;
+    font-weight: 650;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    transition: all 0.15s;
+    text-decoration: none;
+    box-sizing: border-box;
+  }
+
+  .mobile-drawer-link:hover,
+  .mobile-drawer-link.active {
+    background-color: #f0fdfa !important;
+    color: #0f766e !important;
+  }
+
+  .mobile-drawer-section-title {
+    font-size: 0.75rem;
+    font-weight: 750;
+    color: #94a3b8;
+    text-transform: uppercase;
+    margin: 1rem 0.85rem 0.25rem;
+    letter-spacing: 0.05em;
+  }
+
+  .mobile-drawer-profile-section {
+    margin-top: 1.5rem;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 1rem;
+    box-sizing: border-box;
+  }
+
+  .mobile-drawer-profile-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: none;
+    border: none;
+    text-align: left;
+    padding: 0.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    box-sizing: border-box;
+  }
+
+  .mobile-drawer-profile-trigger:hover {
+    background-color: #f8fafc;
+  }
+
+  .profile-trigger-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .profile-trigger-info strong {
+    font-size: 0.85rem;
+    color: #0f172a;
+    font-weight: 750;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+  }
+
+  .profile-trigger-info small {
+    font-size: 0.75rem;
+    color: #64748b;
+  }
+
+  .profile-trigger-arrow {
+    color: #64748b;
+    font-size: 0.75rem;
+  }
+
+  .mobile-drawer-profile-dropdown {
+    background-color: #f8fafc;
+    border-radius: 8px;
+    margin-top: 0.5rem;
+    padding: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    animation: fadeIn 0.2s ease-out;
+    box-sizing: border-box;
+  }
+
+  .dropdown-item-link {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 650;
+    color: #475569 !important;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+    box-sizing: border-box;
+  }
+
+  .dropdown-item-link:hover {
+    background-color: #e2e8f0;
+    color: #0f172a;
+  }
+
+  .dropdown-item-link.logout-item:hover {
+    background-color: #fef2f2;
+    color: #dc2626 !important;
+  }
+
+  .mobile-drawer-actions {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 1.25rem;
+    box-sizing: border-box;
+  }
+
+  .cta-btn-income {
+    background-color: #0f766e !important;
+    color: #ffffff !important;
+    border: none !important;
+    width: 100%;
+    text-align: center;
+    font-weight: 700;
+    padding: 0.65rem;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .cta-btn-income:hover {
+    background-color: #0d9488 !important;
+  }
+
+  .cta-btn-expense {
+    border: 1.5px solid #0f766e !important;
+    color: #0f766e !important;
+    background: transparent !important;
+    width: 100%;
+    text-align: center;
+    font-weight: 700;
+    padding: 0.6rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .cta-btn-expense:hover {
+    background: #f0fdfa !important;
   }
 }
