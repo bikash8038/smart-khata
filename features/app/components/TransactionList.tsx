@@ -63,7 +63,47 @@ export function TransactionList({
 
   return (
     <section className="record-panel">
-      <div className="transaction-list-heading"><h2>{title || t.recentTransactions}</h2>{!title && <label className="transaction-show-menu">Show <select value={limit} onChange={(event) => setLimit(event.target.value)}><option value="25">25</option><option value="50">50</option><option value="75">75</option><option value="100">100</option><option value="all">All</option></select></label>}</div>
+      <div className="transaction-list-heading">
+        <h2 style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+          <span>{title || t.recentTransactions}</span>
+          <span style={{
+            fontSize: "0.78rem",
+            fontWeight: "600",
+            backgroundColor: "#e2e8f0",
+            color: "#334155",
+            padding: "2px 8px",
+            borderRadius: "12px",
+            border: "1px solid #cbd5e1"
+          }}>
+            {locale === "ne"
+              ? `जम्मा: ${sortedItems.length}`
+              : `Total: ${sortedItems.length}`}
+          </span>
+          {limit !== "all" && sortedItems.length > Number(limit) && (
+            <span style={{
+              fontSize: "0.78rem",
+              fontWeight: "500",
+              color: "#64748b",
+            }}>
+              ({locale === "ne" 
+                ? `${limit} वटा देखाइएको` 
+                : `showing ${limit}`})
+            </span>
+          )}
+        </h2>
+        {!title && (
+          <label className="transaction-show-menu">
+            Show{" "}
+            <select value={limit} onChange={(event) => setLimit(event.target.value)}>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="75">75</option>
+              <option value="100">100</option>
+              <option value="all">All</option>
+            </select>
+          </label>
+        )}
+      </div>
       
       {visibleItems.length === 0 ? (
         <p className="empty-state">{t.noTransactions}</p>
