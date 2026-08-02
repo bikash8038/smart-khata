@@ -197,8 +197,15 @@
 .category-settings-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:18px; }
 .category-list-section { min-width:0; border:1px solid #d8eeeb; border-radius:12px; padding:14px; background:#fbfffe; }
 .category-list-section h3 { margin:0 0 10px; color:#0f766e; font-size:.95rem; }
-.category-list-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-top:1px solid #e4f2ef; }
+.category-list-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-top:1px solid #e4f2ef; border-radius:6px; transition: all 0.2s ease-in-out; }
 .category-list-row:first-of-type { border-top:0; }
+.category-list-row:hover { background-color: #f1f8f6; }
+.category-list-row.selected-main-filter {
+  background-color: #ecfdf5 !important;
+  border-left: 4px solid #10b981;
+  box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.1);
+  padding-left: 8px;
+}
 .category-list-row > div { min-width:0; }
 .category-list-row strong, .category-list-row small { display:block; }
 .category-list-row small { margin-top:3px; color:#64748b; font-size:.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

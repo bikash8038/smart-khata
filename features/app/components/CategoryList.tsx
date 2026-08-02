@@ -16,6 +16,7 @@ interface CategoryListProps {
 
 export function CategoryList({ items, t, locale, onEdit, onDelete, userRole, onImportExcel }: CategoryListProps) {
   const [activeTab, setActiveTab] = useState<"expense" | "income">("expense");
+  const [selectedParentId, setSelectedParentId] = useState<string>("all");
   const [parsedRows, setParsedRows] = useState<Array<{ kind: "income" | "expense"; mainNe: string; mainEn: string; subNe: string; subEn: string }>>([]);
   const [dragActive, setDragActive] = useState(false);
   const [fileName, setFileName] = useState("");
@@ -23,15 +24,25 @@ export function CategoryList({ items, t, locale, onEdit, onDelete, userRole, onI
 
   const label = (item: Category) => locale === "ne" ? item.name_ne : (item.name_en || item.name_ne);
   const ActionButtons = ({ item }: { item: Category }) => (
-    <span className="category-actions">
+    <span className="category-actions" onClick={(e) => e.stopPropagation()}>
       <button type="button" className="action-btn-blue" onClick={() => onEdit(item)} title={t.edit}>✎</button>
       <button type="button" className="action-btn-red" onClick={() => onDelete(item.id)} title={t.remove}>×</button>
     </span>
   );
 
+  const handleTabChange = (tab: "expense" | "income") => {
+    setActiveTab(tab);
+    setSelectedParentId("all");
+  };
+
   const filteredItems = items.filter((item) => item.kind === activeTab);
   const mainItems = filteredItems.filter((item) => item.is_main);
   const subItems = filteredItems.filter((item) => !item.is_main);
+  
+  const filteredSubItems = selectedParentId === "all"
+    ? subItems
+    : subItems.filter((item) => item.parent_id === selectedParentId);
+
   const parentName = (item: Category) => label(items.find((parent) => parent.id === item.parent_id) ?? item);
 
   // Excel parsing logic
@@ -211,14 +222,14 @@ export function CategoryList({ items, t, locale, onEdit, onDelete, userRole, onI
         <button
           type="button"
           className={`category-tab-btn ${activeTab === "expense" ? "active" : ""}`}
-          onClick={() => setActiveTab("expense")}
+          onClick={() => handleTabChange("expense")}
         >
           📤 {locale === "ne" ? "खर्च वर्गीकरण" : "Expense Categories"}
         </button>
         <button
           type="button"
           className={`category-tab-btn ${activeTab === "income" ? "active" : ""}`}
-          onClick={() => setActiveTab("income")}
+          onClick={() => handleTabChange("income")}
         >
           📥 {locale === "ne" ? "आम्दानी वर्गीकरण" : "Income Categories"}
         </button>
@@ -232,9 +243,19 @@ export function CategoryList({ items, t, locale, onEdit, onDelete, userRole, onI
               ? (activeTab === "income" ? "मुख्य आम्दानी श्रेणी" : "मुख्य खर्च श्रेणी")
               : (activeTab === "income" ? "Main Income Categories" : "Main Expense Categories")}
           </h3>
+          <p style={{ fontSize: "0.8rem", color: "#64748b", margin: "-6px 0 10px" }}>
+            💡 {locale === "ne" 
+              ? "सब-क्याटेगोरी फिल्टर गर्न मुख्य क्याटेगोरीमा क्लिक गर्नुहोस्।" 
+              : "Click a main category to filter its subcategories."}
+          </p>
           {mainItems.length ? (
             mainItems.map((item) => (
-              <article className="category-list-row" key={item.id}>
+              <article 
+                className={`category-list-row ${selectedParentId === item.id ? "selected-main-filter" : ""}`} 
+                key={item.id}
+                onClick={() => setSelectedParentId(selectedParentId === item.id ? "all" : item.id)}
+                style={{ cursor: "pointer" }}
+              >
                 <div>
                   <strong>{label(item)}</strong>
                   <small>{item.kind === "income" ? t.income : t.expense}</small>
@@ -250,13 +271,41 @@ export function CategoryList({ items, t, locale, onEdit, onDelete, userRole, onI
         </section>
 
         <section className="category-list-section">
-          <h3>
-            {locale === "ne" 
-              ? (activeTab === "income" ? "उप-आम्दानी श्रेणी" : "उप-खर्च श्रेणी")
-              : (activeTab === "income" ? "Sub Income Categories" : "Sub Expense Categories")}
-          </h3>
-          {subItems.length ? (
-            subItems.map((item) => (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px", gap: "10px", flexWrap: "wrap" }}>
+            <h3 style={{ margin: 0 }}>
+              {locale === "ne" 
+                ? (activeTab === "income" ? "उप-आम्दानी श्रेणी" : "उप-खर्च श्रेणी")
+                : (activeTab === "income" ? "Sub Income Categories" : "Sub Expense Categories")}
+            </h3>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <label htmlFor="parent-filter" style={{ fontSize: "0.78rem", color: "#64748b", fontWeight: "600" }}>
+                🔍 {locale === "ne" ? "फिल्टर:" : "Filter:"}
+              </label>
+              <select
+                id="parent-filter"
+                value={selectedParentId}
+                onChange={(e) => setSelectedParentId(e.target.value)}
+                style={{
+                  padding: "4px 8px",
+                  borderRadius: "6px",
+                  border: "1px solid #cbd5e1",
+                  backgroundColor: "#ffffff",
+                  fontSize: "0.78rem",
+                  color: "#1e293b",
+                  fontWeight: "500",
+                  cursor: "pointer",
+                  outline: "none"
+                }}
+              >
+                <option value="all">{locale === "ne" ? "सबै मुख्य श्रेणी" : "All Main Categories"}</option>
+                {mainItems.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{label(cat)}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {filteredSubItems.length ? (
+            filteredSubItems.map((item) => (
               <article className="category-list-row" key={item.id}>
                 <div>
                   <strong>{label(item)}</strong>
@@ -267,7 +316,7 @@ export function CategoryList({ items, t, locale, onEdit, onDelete, userRole, onI
             ))
           ) : (
             <p className="empty-state">
-              {locale === "ne" ? "कुनै उप-श्रेणी फेला परेन।" : "No subcategories yet."}
+              {locale === "ne" ? "कुनै उप-श्रेणी फेला परेन।" : "No subcategories found."}
             </p>
           )}
         </section>
