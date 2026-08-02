@@ -8,9 +8,10 @@ interface MetricCardProps {
   className?: string;
   trend?: string;
   icon?: string;
+  onClick?: () => void;
 }
 
-export function MetricCard({ label, value, className = "", trend, icon }: MetricCardProps) {
+export function MetricCard({ label, value, className = "", trend, icon, onClick }: MetricCardProps) {
   const iconGraphic = className === "balance" ? (
     <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="7" y="11" width="34" height="27" rx="4" /><path d="M7 19h34M13 30h13" /></svg>
   ) : className === "income" ? (
@@ -19,7 +20,11 @@ export function MetricCard({ label, value, className = "", trend, icon }: Metric
     <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 9v29M12 26l12 12 12-12" /></svg>
   ) : icon;
   return (
-    <article className={`summary-card ${className}`}>
+    <article 
+      className={`summary-card ${className} ${onClick ? "clickable" : ""}`}
+      onClick={onClick}
+      style={onClick ? { cursor: "pointer", transition: "transform 0.2s ease, box-shadow 0.2s ease" } : undefined}
+    >
       <div className="summary-card-header">
         <p>{label}</p>
         {iconGraphic && <span className="summary-icon">{iconGraphic}</span>}

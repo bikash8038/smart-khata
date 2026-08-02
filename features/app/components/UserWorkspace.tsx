@@ -150,7 +150,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
                 : page === "transactions"
                 ? t.manageTransactions
                 : page === "accounts"
-                ? t.noAccounts
+                ? (locale === "ne" ? "आफ्नो बैंक खाता, नगद र डिजिटल वालेटहरू व्यवस्थापन गर्नुहोस्।" : "Manage your bank accounts, cash, and digital wallets.")
                 : page === "categories"
                 ? t.manageCategories
                 : t.adminPanel}
@@ -228,7 +228,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
                 </section>
 
                 <section className="summary-grid">
-                  <MetricCard label={t.totalBalance} value={formatMoney(balance)} className="balance" icon="💳" />
+                  <MetricCard label={t.totalBalance} value={formatMoney(balance)} className="balance" icon="💳" onClick={() => setPage("accounts")} />
                   <MetricCard label={t.monthlyIncome} value={formatMoney(totals.income)} className="income" icon="📈" />
                   <MetricCard label={t.monthlyExpense} value={formatMoney(totals.expense)} className="expense" icon="📉" />
                 </section>
@@ -278,6 +278,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
                 empty={t.noAccounts}
                 formatMoney={formatMoney}
                 t={t}
+                locale={locale}
                 onEdit={(account) => { setEditingAccount(account); setShowAccountForm(true); }}
               />
             )}

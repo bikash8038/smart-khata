@@ -51,35 +51,155 @@
   gap: 14px;
 }
 
-.account-card {
-  padding: 20px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: #fff;
+/* Premium Digital Banking Cards styling */
+.premium-account-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 190px;
+  padding: 22px;
+  border-radius: 16px;
+  color: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.12), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-.account-card p,
-.account-card span {
-  display: block;
+.premium-account-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* Card Glow Effect */
+.card-glass-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 60%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Gradients for each Card Type */
+.card-type-bank {
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+}
+.card-type-cash {
+  background: linear-gradient(135deg, #15803d 0%, #10b981 100%);
+}
+.card-type-wallet {
+  background: linear-gradient(135deg, #5b21b6 0%, #8b5cf6 100%);
+}
+.card-type-credit_card {
+  background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+}
+.card-type-other {
+  background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+}
+
+/* Card Elements Layout */
+.card-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 2;
+}
+
+.card-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.card-chip {
+  width: 38px;
+  height: 28px;
+  opacity: 0.85;
+}
+
+.card-mid-row {
+  margin-top: 15px;
+  z-index: 2;
+}
+
+.card-holder-label, .card-balance-label {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0 0 2px;
+}
+
+.card-title-name {
+  font-size: 1.15rem;
+  font-weight: 750;
+  color: #ffffff;
   margin: 0;
-  color: #6b7280;
-  font-size: 0.78rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.account-card h2 {
-  margin: 8px 0;
-  color: #312e4a;
-  font-size: 1rem;
+.card-bottom-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 15px;
+  z-index: 2;
 }
 
-.account-card strong {
+.card-balance-val {
   display: block;
-  margin: 18px 0 6px;
-  color: #1e1b4b;
-  font-size: 1.25rem;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 2px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
-.account-edit-button { margin-top: 14px; padding: 7px 11px; border: 1px solid #b9e4de; border-radius: 7px; color: #0f766e; background: #f0fdfa; font: inherit; font-size: .8rem; font-weight: 800; cursor: pointer; }
+.card-opening-balance {
+  display: block;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* Premium Card Edit Button */
+.card-edit-action-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+  backdrop-filter: blur(4px);
+  padding: 0;
+}
+
+.card-edit-action-btn:hover {
+  background: #ffffff;
+  color: #1e293b;
+  transform: scale(1.1);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
 
 /* Search Toolbar - Custom Aligned and Structured */
 .transaction-toolbar {
@@ -993,3 +1113,7 @@
   gap: 10px;
 }
 
+.summary-card.balance.clickable:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 20px -4px rgba(37, 99, 235, 0.3);
+}
