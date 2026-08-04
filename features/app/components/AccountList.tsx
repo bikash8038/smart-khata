@@ -49,7 +49,7 @@ export function AccountList({ items, transactions, empty, formatMoney, t, locale
           <p className="empty-state">{empty}</p>
         </section>
       ) : (
-        items.map((item) => {
+        items.map((item, index) => {
           const flow = transactions
             .filter((row) => row.account_id === item.id)
             .reduce(
@@ -65,9 +65,10 @@ export function AccountList({ items, transactions, empty, formatMoney, t, locale
           
           const currentBalance = Number(item.opening_balance) + flow;
           const typeClass = `card-type-${item.account_type}`;
+          const indexClass = `card-theme-${(index % 5) + 1}`;
 
           return (
-            <article className={`premium-account-card ${typeClass}`} key={item.id}>
+            <article className={`premium-account-card ${typeClass} ${indexClass}`} key={item.id}>
               {/* Glossy overlay reflections */}
               <div className="card-glass-glow" />
               

@@ -43,6 +43,7 @@ export interface Transaction {
   account_id: string;
   category_id: string | null;
   created_at?: string;
+  runningBalance?: number;
 }
 
 export interface ConfirmDialogState {

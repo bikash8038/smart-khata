@@ -43,6 +43,9 @@ export function useWorkspaceData(
   const [newTransactionKind, setNewTransactionKind] = useState<"income" | "expense">("expense");
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
+  const [accountFilter, setAccountFilter] = useState<string>("all");
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const isCreatingStarterCategories = useRef(false);
@@ -702,16 +705,69 @@ export function useWorkspaceData(
     });
   }
 
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter((item) => {
-      const category = categories.find((entry) => entry.id === item.category_id)?.name_ne ?? "";
-      const term = query.trim().toLowerCase();
-      return (
-        (typeFilter === "all" || item.kind === typeFilter) &&
-        (!term || `${item.note ?? ""} ${category}`.toLowerCase().includes(term))
+  const transactionsWithRunningBalance = useMemo(() => {
+    // Sort chronologically ascending to compute accurate cumulative running balances
+    const sortedAsc = [...transactions].sort(
+      (a, b) =>
+        a.transaction_date.localeCompare(b.transaction_date) ||
+        (a.created_at ?? "").localeCompare(b.created_at ?? "") ||
+        a.id.localeCompare(b.id)
+    );
+
+    const accountBalances: Record<string, number> = {};
+    accounts.forEach((acc) => {
+      accountBalances[acc.id] = Number(acc.opening_balance) || 0;
+    });
+
+    let globalBalance = accounts.reduce((sum, acc) => sum + (Number(acc.opening_balance) || 0), 0);
+
+    const balanceMap = new Map<string, number>();
+
+    sortedAsc.forEach((tx) => {
+      const amt = Number(tx.amount) || 0;
+      if (tx.kind === "income") {
+        accountBalances[tx.account_id] = (accountBalances[tx.account_id] || 0) + amt;
+        globalBalance += amt;
+      } else if (tx.kind === "expense") {
+        accountBalances[tx.account_id] = (accountBalances[tx.account_id] || 0) - amt;
+        globalBalance -= amt;
+      }
+
+      balanceMap.set(
+        tx.id,
+        accountFilter !== "all" ? (accountBalances[tx.account_id] || 0) : globalBalance
       );
     });
-  }, [transactions, categories, query, typeFilter]);
+
+    return transactions.map((tx) => ({
+      ...tx,
+      runningBalance: balanceMap.get(tx.id) ?? 0,
+    }));
+  }, [transactions, accounts, accountFilter]);
+
+  const filteredTransactions = useMemo(() => {
+    return transactionsWithRunningBalance.filter((item) => {
+      if (accountFilter !== "all" && item.account_id !== accountFilter) {
+        return false;
+      }
+      if (typeFilter !== "all" && item.kind !== typeFilter) {
+        return false;
+      }
+      if (fromDate && item.transaction_date < fromDate) {
+        return false;
+      }
+      if (toDate && item.transaction_date > toDate) {
+        return false;
+      }
+      if (query.trim()) {
+        const category = categories.find((entry) => entry.id === item.category_id)?.name_ne ?? "";
+        const term = query.trim().toLowerCase();
+        const match = `${item.note ?? ""} ${category}`.toLowerCase().includes(term);
+        if (!match) return false;
+      }
+      return true;
+    });
+  }, [transactionsWithRunningBalance, accountFilter, typeFilter, fromDate, toDate, query, categories]);
 
   return {
     accounts,
@@ -728,6 +784,12 @@ export function useWorkspaceData(
     setQuery,
     typeFilter,
     setTypeFilter,
+    accountFilter,
+    setAccountFilter,
+    fromDate,
+    setFromDate,
+    toDate,
+    setToDate,
     confirmDialog,
     setConfirmDialog,
 

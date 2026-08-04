@@ -53,6 +53,12 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
     setQuery,
     typeFilter,
     setTypeFilter,
+    accountFilter,
+    setAccountFilter,
+    fromDate,
+    setFromDate,
+    toDate,
+    setToDate,
     confirmDialog,
     setConfirmDialog,
     showAccountForm,
@@ -318,10 +324,18 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
                 {page === "transactions" && (
                   <TransactionToolbar
                     t={t}
+                    locale={locale}
+                    accounts={accounts}
                     query={query}
                     typeFilter={typeFilter}
+                    accountFilter={accountFilter}
+                    fromDate={fromDate}
+                    toDate={toDate}
                     onQuery={setQuery}
                     onType={setTypeFilter}
+                    onAccount={setAccountFilter}
+                    onFromDate={setFromDate}
+                    onToDate={setToDate}
                   />
                 )}
                 <TransactionList
@@ -647,6 +661,7 @@ function WorkspaceFrame({
               ))}
             </div>
 
+            {/* Profile section placed at bottom directly after links (no empty gap) */}
             <div className="mobile-drawer-profile-section">
               <button
                 type="button"
@@ -680,6 +695,7 @@ function WorkspaceFrame({
                   >
                     👤 {locale === "ne" ? "व्यक्तिगत विवरण" : "Personal Info"}
                   </button>
+
                   <button
                     type="button"
                     className="dropdown-item-link"
@@ -688,8 +704,25 @@ function WorkspaceFrame({
                       setMobileMenuOpen(false);
                     }}
                   >
-                    🔒 {locale === "ne" ? "सुरक्षा र पासवर्ड" : "Privacy & Security"}
+                    🔒 {locale === "ne" ? "सुरक्षा र पासवर्ड" : "Security & Password"}
                   </button>
+
+                  {/* Language selector inside profile menu */}
+                  <div className="dropdown-language-item">
+                    <span>🌐 {locale === "ne" ? "भाषा (Language)" : "Language"}</span>
+                    <select
+                      className="locale-select drawer-locale-select"
+                      aria-label={t.language}
+                      value={locale}
+                      onChange={(event) => {
+                        setLocale(event.target.value as WorkspaceLocale);
+                      }}
+                    >
+                      <option value="en">English</option>
+                      <option value="ne">नेपाली</option>
+                    </select>
+                  </div>
+
                   <button
                     type="button"
                     className="dropdown-item-link logout-item"
@@ -703,7 +736,6 @@ function WorkspaceFrame({
                 </div>
               )}
             </div>
-            
           </div>
         </div>
       )}
@@ -711,7 +743,6 @@ function WorkspaceFrame({
       {/* Main Content Area */}
       <main className="workspace-main">
         <header className="workspace-topbar">
-          <p className="mobile-top-brand">Smart Khata</p>
           <button
             type="button"
             className="mobile-menu-toggle"
@@ -720,6 +751,7 @@ function WorkspaceFrame({
           >
             ☰
           </button>
+          <p className="mobile-top-brand">Smart Khata</p>
         </header>
 
         {children}
