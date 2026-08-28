@@ -13,12 +13,12 @@ interface TransactionToolbarProps {
   locale: "en" | "ne";
   accounts: Account[];
   query: string;
-  typeFilter: "all" | "income" | "expense";
+  typeFilter: "all" | "income" | "expense" | "transfer";
   accountFilter: string;
   fromDate: string;
   toDate: string;
   onQuery: (value: string) => void;
-  onType: (value: "all" | "income" | "expense") => void;
+  onType: (value: "all" | "income" | "expense" | "transfer") => void;
   onAccount: (value: string) => void;
   onFromDate: (value: string) => void;
   onToDate: (value: string) => void;
@@ -150,11 +150,12 @@ export function TransactionToolbar({
         <div className="filter-select-wrapper desktop-only-filter">
           <select
             value={typeFilter}
-            onChange={(event) => onType(event.target.value as "all" | "income" | "expense")}
+            onChange={(event) => onType(event.target.value as "all" | "income" | "expense" | "transfer")}
           >
             <option value="all">{t.allTransactions}</option>
             <option value="income">{t.income}</option>
             <option value="expense">{t.expense}</option>
+            <option value="transfer">{locale === "ne" ? "खाता स्थानान्तरण" : "Fund Transfer"}</option>
           </select>
         </div>
 
@@ -202,7 +203,15 @@ export function TransactionToolbar({
           {typeFilter !== "all" && (
             <span className="active-filter-chip">
               {locale === "ne" ? "प्रकार:" : "Type:"}{" "}
-              <strong>{typeFilter === "income" ? t.income : t.expense}</strong>
+              <strong>
+                {typeFilter === "income"
+                  ? t.income
+                  : typeFilter === "expense"
+                  ? t.expense
+                  : locale === "ne"
+                  ? "खाता स्थानान्तरण"
+                  : "Fund Transfer"}
+              </strong>
             </span>
           )}
           <button type="button" className="clear-all-filters-btn" onClick={handleReset}>
@@ -277,11 +286,12 @@ export function TransactionToolbar({
                 <label>{locale === "ne" ? "कारोबार प्रकार" : "Transaction Type"}</label>
                 <select
                   value={tempType}
-                  onChange={(e) => setTempType(e.target.value as "all" | "income" | "expense")}
+                  onChange={(e) => setTempType(e.target.value as "all" | "income" | "expense" | "transfer")}
                 >
                   <option value="all">{t.allTransactions}</option>
                   <option value="income">{t.income}</option>
                   <option value="expense">{t.expense}</option>
+                  <option value="transfer">{locale === "ne" ? "खाता स्थानान्तरण" : "Fund Transfer"}</option>
                 </select>
               </div>
             </div>

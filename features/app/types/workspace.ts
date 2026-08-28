@@ -41,6 +41,7 @@ export interface Transaction {
   transaction_date: string;
   note: string | null;
   account_id: string;
+  to_account_id?: string | null;
   category_id: string | null;
   created_at?: string;
   runningBalance?: number;

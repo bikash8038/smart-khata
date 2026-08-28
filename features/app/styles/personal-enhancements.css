@@ -814,6 +814,20 @@
   color: #dc2626 !important; /* Red */
 }
 
+.transaction-amount.transfer {
+  color: #0284c7 !important; /* Sky Blue */
+}
+
+.transaction-type-indicator.transfer {
+  background-color: #e0f2fe !important;
+  color: #0284c7 !important;
+}
+
+.category-badge.transfer {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
 /* Reduce gap on left and right of arrow icon */
 .record-info {
   display: flex !important;

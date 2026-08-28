@@ -12,7 +12,7 @@ interface TransactionFormProps {
   accounts: Account[];
   categories: Category[];
   current: Transaction | null;
-  initialKind: "income" | "expense";
+  initialKind: "income" | "expense" | "transfer";
   onCancel: () => void;
   onSave: (event: FormEvent<HTMLFormElement>) => void;
   onSeedMainCategories: () => void;
@@ -30,8 +30,11 @@ export function TransactionForm({
   onSeedMainCategories
 }: TransactionFormProps) {
   const currentCategory = categories.find((category) => category.id === current?.category_id);
-  const initialKindValue = current?.kind === "income" ? "income" : current?.kind === "expense" ? "expense" : initialKind;
-  const [kind, setKind] = useState<"income" | "expense">(initialKindValue);
+  const initialKindValue = current?.kind ?? initialKind;
+  const [kind, setKind] = useState<"income" | "expense" | "transfer">(initialKindValue);
+
+  const [fromAccountId, setFromAccountId] = useState(current?.account_id ?? accounts[0]?.id ?? "");
+  const [toAccountId, setToAccountId] = useState(current?.to_account_id ?? "");
 
   const [mainCategoryId, setMainCategoryId] = useState(currentCategory?.parent_id ?? "");
   const [categoryId, setCategoryId] = useState(current?.category_id ?? "");
@@ -71,13 +74,29 @@ export function TransactionForm({
     );
   }
 
-  const changeKind = (value: "income" | "expense") => {
+  const changeKind = (value: "income" | "expense" | "transfer") => {
     setKind(value);
-    const newMains = categories.filter((c) => c.kind === value && c.is_main);
-    const defaultMainId = newMains[0]?.id ?? "";
-    setMainCategoryId(defaultMainId);
+    if (value !== "transfer") {
+      const newMains = categories.filter((c) => c.kind === value && c.is_main);
+      const defaultMainId = newMains[0]?.id ?? "";
+      setMainCategoryId(defaultMainId);
+    } else {
+      setMainCategoryId("");
+      if (!toAccountId && accounts.length > 1) {
+        const otherAcc = accounts.find((acc) => acc.id !== fromAccountId);
+        if (otherAcc) setToAccountId(otherAcc.id);
+      }
+    }
     setCategoryId("");
     setAddingCategory(false);
+  };
+
+  const handleFromAccountChange = (id: string) => {
+    setFromAccountId(id);
+    if (id === toAccountId) {
+      const otherAcc = accounts.find((acc) => acc.id !== id);
+      setToAccountId(otherAcc?.id ?? "");
+    }
   };
 
   const changeMainCategory = (id: string) => {
@@ -88,95 +107,134 @@ export function TransactionForm({
 
   return (
     <form className="data-form transaction-form" onSubmit={onSave}>
-      <h2 className="modal-form-title">{current ? t.edit : t.newTransaction}</h2>
+      <h2 className="modal-form-title">{kind === "transfer" ? (current ? (locale === "ne" ? "मौज्दात मिलान सम्पादन" : "Edit Balance Adjustment") : (locale === "ne" ? "मौज्दात मिलान" : "Balance Adjustment")) : (current ? t.edit : t.newTransaction)}</h2>
       
-      <div className="form-row-2col">
-        <label className="transaction-type-field">
-          {t.transactionType}
-          <select name="kind" value={kind} onChange={(event) => changeKind(event.target.value as "income" | "expense")}>
-            <option value="expense">{t.expense}</option>
-            <option value="income">{t.income}</option>
-          </select>
-        </label>
+      {kind === "transfer" ? (
+        <div className="form-row-2col">
+          <input type="hidden" name="kind" value="transfer" />
+          <label>
+            {locale === "ne" ? "पठाउने खाता (From)" : "From Account"}
+            <select name="account" value={fromAccountId} onChange={(event) => handleFromAccountChange(event.target.value)}>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <label>
-          {t.account}
-          <select name="account" defaultValue={current?.account_id ?? accounts[0]?.id}>
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      <label>
-        {locale === "ne" ? "मुख्य श्रेणी" : "Main Category"}
-        <select
-          name="mainCategory"
-          value={activeMainCategoryId}
-          onChange={(event) => changeMainCategory(event.target.value)}
-          required
-        >
-          {mainCategories.length === 0 && (
-            <option value="">{locale === "ne" ? "मुख्य श्रेणी छान्नुहोस्" : "Choose Main Category"}</option>
-          )}
-          {mainCategories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {label(category)}
-            </option>
-          ))}
-        </select>
-        {mainCategories.length === 0 && (
-          <button type="button" className="seed-categories-button" onClick={onSeedMainCategories}>
-            {locale === "ne" ? "डिफल्ट मुख्य श्रेणीहरू बनाउनुहोस्" : "Create default main categories"}
-          </button>
-        )}
-      </label>
-
-      <label>
-        {locale === "ne" ? "उप-श्रेणी" : "Subcategory"}
-        <div className="category-choice-wrapper">
-          {addingCategory ? (
-            <div className="new-subcategory-inputs">
-              <input
-                name="newCategory_ne"
-                required
-                autoFocus
-                placeholder={locale === "ne" ? "नेपाली उप-श्रेणी" : "Nepali subcategory"}
-              />
-              <input
-                name="newCategory_en"
-                placeholder={locale === "ne" ? "अंग्रेजी उप-श्रेणी (वैकल्पिक)" : "English subcategory (optional)"}
-              />
-            </div>
-          ) : (
+          <label>
+            {locale === "ne" ? "प्राप्त गर्ने खाता (To)" : "To Account"}
             <select
-              name="category"
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              disabled={!activeMainCategoryId}
-              className="subcategory-select"
+              name="to_account"
+              value={toAccountId}
+              onChange={(event) => setToAccountId(event.target.value)}
+              required
             >
-              <option value="">{locale === "ne" ? "उप-श्रेणी छान्नुहोस्" : "Choose Subcategory"}</option>
-              {subcategories.map((category) => (
+              <option value="">{locale === "ne" ? "खाता छान्नुहोस्" : "Select Account"}</option>
+              {accounts
+                .filter((acc) => acc.id !== fromAccountId)
+                .map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+        </div>
+      ) : (
+        <div className="form-row-2col">
+          <label className="transaction-type-field">
+            {t.transactionType}
+            <select name="kind" value={kind} onChange={(event) => changeKind(event.target.value as "income" | "expense")}>
+              <option value="expense">{t.expense}</option>
+              <option value="income">{t.income}</option>
+            </select>
+          </label>
+
+          <label>
+            {t.account}
+            <select name="account" defaultValue={current?.account_id ?? accounts[0]?.id}>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
+
+      {kind !== "transfer" && (
+        <>
+          <label>
+            {locale === "ne" ? "मुख्य श्रेणी" : "Main Category"}
+            <select
+              name="mainCategory"
+              value={activeMainCategoryId}
+              onChange={(event) => changeMainCategory(event.target.value)}
+              required={kind !== "transfer"}
+            >
+              {mainCategories.length === 0 && (
+                <option value="">{locale === "ne" ? "मुख्य श्रेणी छान्नुहोस्" : "Choose Main Category"}</option>
+              )}
+              {mainCategories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {label(category)}
                 </option>
               ))}
             </select>
-          )}
-          <button
-            type="button"
-            className="outline-button add-subcat-toggle-btn"
-            disabled={!activeMainCategoryId}
-            onClick={() => setAddingCategory((adding) => !adding)}
-          >
-            {addingCategory ? (locale === "ne" ? "छान्नुहोस्" : "Choose") : (locale === "ne" ? "+ थप्नुहोस्" : "+ Add")}
-          </button>
-        </div>
-      </label>
+            {mainCategories.length === 0 && (
+              <button type="button" className="seed-categories-button" onClick={onSeedMainCategories}>
+                {locale === "ne" ? "डिफल्ट मुख्य श्रेणीहरू बनाउनुहोस्" : "Create default main categories"}
+              </button>
+            )}
+          </label>
+
+          <label>
+            {locale === "ne" ? "उप-श्रेणी" : "Subcategory"}
+            <div className="category-choice-wrapper">
+              {addingCategory ? (
+                <div className="new-subcategory-inputs">
+                  <input
+                    name="newCategory_ne"
+                    required={kind !== "transfer"}
+                    autoFocus
+                    placeholder={locale === "ne" ? "नेपाली उप-श्रेणी" : "Nepali subcategory"}
+                  />
+                  <input
+                    name="newCategory_en"
+                    placeholder={locale === "ne" ? "अंग्रेजी उप-श्रेणी (वैकल्पिक)" : "English subcategory (optional)"}
+                  />
+                </div>
+              ) : (
+                <select
+                  name="category"
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  disabled={!activeMainCategoryId}
+                  className="subcategory-select"
+                >
+                  <option value="">{locale === "ne" ? "उप-श्रेणी छान्नुहोस्" : "Choose Subcategory"}</option>
+                  {subcategories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {label(category)}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <button
+                type="button"
+                className="outline-button add-subcat-toggle-btn"
+                disabled={!activeMainCategoryId}
+                onClick={() => setAddingCategory((adding) => !adding)}
+              >
+                {addingCategory ? (locale === "ne" ? "छान्नुहोस्" : "Choose") : (locale === "ne" ? "+ थप्नुहोस्" : "+ Add")}
+              </button>
+            </div>
+          </label>
+        </>
+      )}
 
       <div className="form-row-2col amount-date-row">
         <label className="amount-input-label">
@@ -209,7 +267,13 @@ export function TransactionForm({
         <input
           name="note"
           defaultValue={current?.note ?? ""}
-          placeholder={kind === "income" ? (locale === "ne" ? "आम्दानी शीर्षक" : "Income Topic") : (locale === "ne" ? "खर्च शीर्षक" : "Expense Topic")}
+          placeholder={
+            kind === "income"
+              ? (locale === "ne" ? "आम्दानी शीर्षक" : "Income Topic")
+              : kind === "transfer"
+              ? (locale === "ne" ? "स्थानान्तरण विवरण (वैकल्पिक)" : "Transfer Description (optional)")
+              : (locale === "ne" ? "खर्च शीर्षक" : "Expense Topic")
+          }
           autoComplete="off"
         />
       </label>

@@ -40,9 +40,9 @@ export function useWorkspaceData(
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [newTransactionKind, setNewTransactionKind] = useState<"income" | "expense">("expense");
+  const [newTransactionKind, setNewTransactionKind] = useState<"income" | "expense" | "transfer">("expense");
   const [query, setQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense" | "transfer">("all");
   const [accountFilter, setAccountFilter] = useState<string>("all");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
@@ -70,7 +70,7 @@ export function useWorkspaceData(
           .order("name_ne"),
         supabase
           .from("transactions")
-          .select("id,amount,kind,transaction_date,note,account_id,category_id,created_at")
+          .select("id,amount,kind,transaction_date,note,account_id,to_account_id,category_id,created_at")
           .order("transaction_date", { ascending: false })
           .order("created_at", { ascending: false }),
         supabase
@@ -275,14 +275,16 @@ export function useWorkspaceData(
       if (categoryResult.error) { setNotice(categoryResult.error.message); return; }
       categoryId = categoryResult.data.id;
     }
+    const kind = String(form.get("kind"));
     const payload = {
       user_id: user.id,
       account_id: String(form.get("account")),
-      category_id: categoryId,
-      kind: String(form.get("kind")),
+      category_id: kind === "transfer" ? null : categoryId,
+      kind: kind,
       amount: Number(form.get("amount")),
       transaction_date: String(form.get("date")),
       note: String(form.get("note")) || null,
+      to_account_id: kind === "transfer" ? String(form.get("to_account")) : null,
     };
 
     try {
@@ -683,11 +685,10 @@ export function useWorkspaceData(
     setShowTransactionForm(true);
   }
 
-  async function startTransaction(kind: "income" | "expense" = "expense") {
+  async function startTransaction(kind: "income" | "expense" | "transfer" = "expense") {
     if (!categories.some((category) => category.kind === kind && category.is_main)) await load();
     setEditingTransaction(null);
     setNewTransactionKind(kind);
-    setPage("transactions");
     setShowTransactionForm(true);
   }
 
@@ -731,11 +732,16 @@ export function useWorkspaceData(
       } else if (tx.kind === "expense") {
         accountBalances[tx.account_id] = (accountBalances[tx.account_id] || 0) - amt;
         globalBalance -= amt;
+      } else if (tx.kind === "transfer") {
+        accountBalances[tx.account_id] = (accountBalances[tx.account_id] || 0) - amt;
+        if (tx.to_account_id) {
+          accountBalances[tx.to_account_id] = (accountBalances[tx.to_account_id] || 0) + amt;
+        }
       }
 
       balanceMap.set(
         tx.id,
-        accountFilter !== "all" ? (accountBalances[tx.account_id] || 0) : globalBalance
+        accountFilter !== "all" ? (accountBalances[accountFilter] || 0) : globalBalance
       );
     });
 
@@ -747,8 +753,14 @@ export function useWorkspaceData(
 
   const filteredTransactions = useMemo(() => {
     return transactionsWithRunningBalance.filter((item) => {
-      if (accountFilter !== "all" && item.account_id !== accountFilter) {
-        return false;
+      if (accountFilter !== "all") {
+        if (item.kind === "transfer") {
+          if (item.account_id !== accountFilter && item.to_account_id !== accountFilter) {
+            return false;
+          }
+        } else if (item.account_id !== accountFilter) {
+          return false;
+        }
       }
       if (typeFilter !== "all" && item.kind !== typeFilter) {
         return false;

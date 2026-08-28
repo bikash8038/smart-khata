@@ -173,13 +173,22 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
               </button>
             )}
             {page === "accounts" && (
-              <button
-                type="button"
-                className="primary-button page-action"
-                onClick={() => setShowAccountForm(true)}
-              >
-                {t.addAccount}
-              </button>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button
+                  type="button"
+                  className="outline-button page-action"
+                  onClick={() => startTransaction("transfer")}
+                >
+                  {locale === "ne" ? "मौज्दात मिलान" : "Balance Adjustment"}
+                </button>
+                <button
+                  type="button"
+                  className="primary-button page-action"
+                  onClick={() => setShowAccountForm(true)}
+                >
+                  {t.addAccount}
+                </button>
+              </div>
             )}
             {page === "categories" && (
               <>
@@ -356,7 +365,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
 
         {showAccountForm && (
           <Modal onClose={() => { setShowAccountForm(false); setEditingAccount(null); }}>
-            <AccountForm t={t} current={editingAccount} onCancel={() => { setShowAccountForm(false); setEditingAccount(null); }} onSave={saveAccount} />
+            <AccountForm t={t} locale={locale} current={editingAccount} onCancel={() => { setShowAccountForm(false); setEditingAccount(null); }} onSave={saveAccount} />
           </Modal>
         )}
 
