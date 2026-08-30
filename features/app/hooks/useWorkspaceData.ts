@@ -67,12 +67,44 @@ export function useWorkspaceData(
           .from("categories")
           .select("id,name_ne,name_en,kind,parent_id,is_main,is_system")
           .or(`user_id.eq.${user.id},is_system.eq.true`)
-          .order("name_ne"),
+          .order("name_ne")
+          .then(async (res) => {
+            if (res.error && (res.error.code === "42703" || res.error.message?.includes("is_main") || res.error.message?.includes("parent_id") || res.error.message?.includes("is_system"))) {
+              return supabase
+                .from("categories")
+                .select("id,name_ne,name_en,kind")
+                .order("name_ne");
+            }
+            return res;
+          })
+          .catch(async () => {
+            return supabase
+              .from("categories")
+              .select("id,name_ne,name_en,kind")
+              .order("name_ne");
+          }),
         supabase
           .from("transactions")
           .select("id,amount,kind,transaction_date,note,account_id,to_account_id,category_id,created_at")
           .order("transaction_date", { ascending: false })
-          .order("created_at", { ascending: false }),
+          .order("created_at", { ascending: false })
+          .then(async (res) => {
+            if (res.error && (res.error.code === "42703" || res.error.message?.includes("to_account_id"))) {
+              return supabase
+                .from("transactions")
+                .select("id,amount,kind,transaction_date,note,account_id,category_id,created_at")
+                .order("transaction_date", { ascending: false })
+                .order("created_at", { ascending: false });
+            }
+            return res;
+          })
+          .catch(async () => {
+            return supabase
+              .from("transactions")
+              .select("id,amount,kind,transaction_date,note,account_id,category_id,created_at")
+              .order("transaction_date", { ascending: false })
+              .order("created_at", { ascending: false });
+          }),
         supabase
           .from("profiles")
           .select("role, status, scheduled_deletion_date")
@@ -99,6 +131,11 @@ export function useWorkspaceData(
           .from("category_exclusions")
           .select("category_id")
           .eq("user_id", user.id)
+          .then((res) => {
+            if (res.error) return { data: [], error: null };
+            return res;
+          })
+          .catch(() => ({ data: [], error: null }))
       ]);
 
       setAccounts((accountResult.data ?? []) as Account[]);
@@ -166,7 +203,7 @@ export function useWorkspaceData(
         );
       }
 
-      if (accountResult.error || categoryResult.error || transactionResult.error) {
+      if ((accountResult.error && !accountResult.data) || (categoryResult.error && !categoryResult.data) || (transactionResult.error && !transactionResult.data)) {
         const categorySchemaIsMissing = Boolean(categoryResult.error && /(?:is_main|parent_id)/i.test(categoryResult.error.message));
         setNotice(
           categorySchemaIsMissing

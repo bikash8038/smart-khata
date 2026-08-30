@@ -25,6 +25,7 @@ import { AlertModal } from "../../../components/ui/AlertModal";
 import { PageSkeleton } from "../../../components/ui/AppSkeleton";
 import { UserManagement } from "./UserManagement";
 import { ProfileSettings } from "./ProfileSettings";
+import { BankStatementView } from "./BankStatementView";
 
 // Import styles
 import "../styles/user-workspace.css";
@@ -86,6 +87,9 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
     startTransaction,
     signOut,
   } = useWorkspaceData(user, locale, t, setPage);
+
+  // View mode for Transactions page (list view vs electronic bank statement view)
+  const [txViewMode, setTxViewMode] = useState<"list" | "statement">("list");
 
   // Initialize day greeting state directly to avoid useEffect setState linter warnings
   const [dayGreeting] = useState(() => {
@@ -331,33 +335,88 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
             {(page === "dashboard" || page === "transactions") && (
               <>
                 {page === "transactions" && (
-                  <TransactionToolbar
-                    t={t}
-                    locale={locale}
+                  <>
+                    <div className="transactions-view-tab-container">
+                      <div className="transactions-view-tabs">
+                        <button
+                          type="button"
+                          className={`tx-view-tab-btn ${txViewMode === "list" ? "active" : ""}`}
+                          onClick={() => setTxViewMode("list")}
+                          title={t.listView || "List View"}
+                        >
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                            <line x1="8" y1="6" x2="21" y2="6" />
+                            <line x1="8" y1="12" x2="21" y2="12" />
+                            <line x1="8" y1="18" x2="21" y2="18" />
+                            <line x1="3" y1="6" x2="3.01" y2="6" />
+                            <line x1="3" y1="12" x2="3.01" y2="12" />
+                            <line x1="3" y1="18" x2="3.01" y2="18" />
+                          </svg>
+                          <span>{t.listView || "List View"}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`tx-view-tab-btn ${txViewMode === "statement" ? "active" : ""}`}
+                          onClick={() => setTxViewMode("statement")}
+                          title={t.statementView || "Statement View"}
+                        >
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                            <polyline points="10 9 9 9 8 9" />
+                          </svg>
+                          <span>{t.statementView || "Statement View"}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <TransactionToolbar
+                      t={t}
+                      locale={locale}
+                      accounts={accounts}
+                      query={query}
+                      typeFilter={typeFilter}
+                      accountFilter={accountFilter}
+                      fromDate={fromDate}
+                      toDate={toDate}
+                      onQuery={setQuery}
+                      onType={setTypeFilter}
+                      onAccount={setAccountFilter}
+                      onFromDate={setFromDate}
+                      onToDate={setToDate}
+                    />
+                  </>
+                )}
+                {page === "transactions" && txViewMode === "statement" ? (
+                  <BankStatementView
+                    transactions={transactions}
                     accounts={accounts}
-                    query={query}
-                    typeFilter={typeFilter}
-                    accountFilter={accountFilter}
+                    categories={categories}
+                    user={user}
                     fromDate={fromDate}
                     toDate={toDate}
-                    onQuery={setQuery}
-                    onType={setTypeFilter}
-                    onAccount={setAccountFilter}
-                    onFromDate={setFromDate}
-                    onToDate={setToDate}
+                    accountFilter={accountFilter}
+                    query={query}
+                    typeFilter={typeFilter}
+                    formatMoney={formatMoney}
+                    t={t}
+                    locale={locale}
+                  />
+                ) : (
+                  <TransactionList
+                    items={page === "dashboard" ? transactions.slice(0, 6) : filteredTransactions}
+                    accounts={accounts}
+                    categories={categories}
+                    formatMoney={formatMoney}
+                    t={t}
+                    locale={locale}
+                    onEdit={editTransaction}
+                    onDelete={removeTransaction}
+                    title={page === "dashboard" ? t.recentTransactions : undefined}
                   />
                 )}
-                <TransactionList
-                  items={page === "dashboard" ? transactions.slice(0, 6) : filteredTransactions}
-                  accounts={accounts}
-                  categories={categories}
-                  formatMoney={formatMoney}
-                  t={t}
-                  locale={locale}
-                  onEdit={editTransaction}
-                  onDelete={removeTransaction}
-                  title={page === "dashboard" ? t.recentTransactions : undefined}
-                />
               </>
             )}
           </>

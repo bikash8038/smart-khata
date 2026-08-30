@@ -11,6 +11,8 @@ interface FinanceFormProps {
 }
 
 export function FinanceForm({ section, onCancel, onSubmit, t }: FinanceFormProps) {
+  const [selectedRateType, setSelectedRateType] = React.useState<string>("percent");
+
   const formTitle =
     section === "budgets"
       ? t.addBudget
@@ -104,8 +106,63 @@ export function FinanceForm({ section, onCancel, onSubmit, t }: FinanceFormProps
             />
           </label>
           <label>
+            {t.rateType}
+            <select
+              name="rateType"
+              value={selectedRateType}
+              onChange={(e) => setSelectedRateType(e.target.value)}
+            >
+              <option value="percent">{t.simpleAnnual || "Simple Annual %"}</option>
+              <option value="compound">{t.annualCompound || "Annual Compound % (Banking)"}</option>
+              <option value="per_thousand">{t.monthlyPerThousand || "Monthly per Rs. 1000"}</option>
+              <option value="none">{t.noInterest || "No Interest (0%)"}</option>
+            </select>
+          </label>
+
+          {selectedRateType !== "none" && (
+            <label>
+              {t.interestRate} {selectedRateType === "per_thousand" ? "(रु. प्रति हजार)" : "(%)"}
+              <input
+                name="rate"
+                type="number"
+                min="0"
+                step="0.01"
+                required
+                defaultValue="12"
+                placeholder={selectedRateType === "per_thousand" ? "e.g. 20" : "e.g. 12"}
+                autoComplete="off"
+              />
+              {selectedRateType === "compound" && (
+                <small style={{ color: "#6f42c1", fontWeight: 600, marginTop: "4px", display: "block" }}>
+                  💡 {t.capitalizedNote || "Unpaid interest capitalized to principal annually"}
+                </small>
+              )}
+            </label>
+          )}
+
+          <label>
+            {t.loanStartDate || "Loan Start Date"}
+            <input
+              name="startDate"
+              type="date"
+              defaultValue={new Date().toISOString().slice(0, 10)}
+              required
+            />
+          </label>
+
+          <label>
             {t.dueDateLabel}
             <input name="dueDate" type="date" />
+          </label>
+
+          <label>
+            {t.loanNote || "Purpose / Note"}
+            <input
+              name="note"
+              type="text"
+              placeholder={t.placeholderLoanNote || "e.g., Personal, business"}
+              autoComplete="off"
+            />
           </label>
         </>
       )}

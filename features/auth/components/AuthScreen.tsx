@@ -287,7 +287,7 @@ export function AuthScreen() {
                 type="password"
                 placeholder={t.password}
                 autoComplete={screen === "signup" ? "new-password" : "current-password"}
-                minLength={8}
+                minLength={screen === "signup" ? 6 : undefined}
                 required
               />
             </div>

@@ -30,10 +30,8 @@ export function ProfileSettings({ user, locale, t, onSignOut }: ProfileSettingsP
   const [notice, setNotice] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
   // Password fields
-  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
-  const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -228,6 +226,14 @@ export function ProfileSettings({ user, locale, t, onSignOut }: ProfileSettingsP
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      setNotice({
+        text: locale === "ne" ? "पासवर्ड कम्तिमा ६ वटा अक्षरको हुनुपर्छ।" : "Password must be at least 6 characters long.",
+        type: "error",
+      });
+      return;
+    }
+
     if (newPassword !== confirmNewPassword) {
       setNotice({
         text: locale === "ne" ? "नयाँ पासवर्डहरू मेल खाएनन्।" : "New passwords do not match.",
@@ -247,11 +253,10 @@ export function ProfileSettings({ user, locale, t, onSignOut }: ProfileSettingsP
 
       if (error) throw error;
 
-      setCurrentPassword("");
       setNewPassword("");
       setConfirmNewPassword("");
       setNotice({
-        text: t.passwordChangeSuccess || "Password changed successfully.",
+        text: locale === "ne" ? "पासवर्ड सफलतापूर्वक सुरक्षित गरियो। अब तपाईं इमेल/युजरनेम र यो नयाँ पासवर्डबाट सिधै लगइन गर्न सक्नुहुनेछ।" : (t.passwordChangeSuccess || "Password changed successfully. You can now log in using this password."),
         type: "success",
       });
     } catch (err) {
@@ -492,26 +497,11 @@ export function ProfileSettings({ user, locale, t, onSignOut }: ProfileSettingsP
             {activeTab === "security" && (
               <div className="security-settings">
                 <form onSubmit={handleChangePassword} className="profile-form">
-                  <div className="form-group">
-                    <label htmlFor="currentPassword">{t.currentPassword || "Current Password"} <span className="required-star">*</span></label>
-                    <div className="password-input-wrapper">
-                      <input
-                        type={showCurrent ? "text" : "password"}
-                        id="currentPassword"
-                        placeholder={locale === "ne" ? "आफ्नो हालको पासवर्ड हाल्नुहोस्" : "Enter your current password"}
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        required
-                      />
-                      <button
-                        type="button"
-                        className="password-toggle-btn"
-                        onClick={() => setShowCurrent(!showCurrent)}
-                      >
-                        {showCurrent ? "👁️" : "👁️‍🗨️"}
-                      </button>
-                    </div>
-                  </div>
+                  <p className="profile-security-hint" style={{ fontSize: "0.82rem", color: "#64748b", marginBottom: "1rem" }}>
+                    {locale === "ne"
+                      ? "💡 इमेल वा गुगलबाट लगइन गर्नुभएको छ भने पनि यहाँबाट नयाँ पासवर्ड सेट गर्न सक्नुहुन्छ। त्यसपछि युजरनेम वा इमेल र पासवर्डबाट सजिलै लगइन गर्न सकिन्छ।"
+                      : "💡 Even if you signed in using Email or Google, you can set a password here to log in with your username/email and password."}
+                  </p>
 
                   <div className="form-group">
                     <label htmlFor="newPassword">{t.newPassword || "New Password"} <span className="required-star">*</span></label>

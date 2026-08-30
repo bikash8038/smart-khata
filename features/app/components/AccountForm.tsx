@@ -4,13 +4,13 @@ import React, { FormEvent } from "react";
 
 interface AccountFormProps {
   t: Record<string, string>;
-  locale: "en" | "ne";
+  locale?: "en" | "ne";
   onCancel: () => void;
   onSave: (event: FormEvent<HTMLFormElement>) => void;
   current?: { id: string; name: string; account_type: string; opening_balance: number } | null;
 }
 
-export function AccountForm({ t, locale, onCancel, onSave, current }: AccountFormProps) {
+export function AccountForm({ t, onCancel, onSave, current }: AccountFormProps) {
   return (
     <form className="data-form" onSubmit={onSave}>
       <h2>{current ? t.edit : t.addAccount}</h2>
