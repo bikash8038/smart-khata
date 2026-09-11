@@ -670,14 +670,15 @@
   
   .transaction-toolbar {
     display: flex !important;
-    flex-wrap: wrap !important;
+    flex-wrap: nowrap !important;
     gap: 8px !important;
     align-items: center !important;
+    padding: 8px 10px !important;
   }
   
   .search-input-wrapper {
-    flex: 1 !important;
-    min-width: 180px !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
   }
   
   .filter-select-wrapper {
