@@ -10,9 +10,10 @@ interface LoanListProps {
   onAddPayment?: (loanId: string, payment: Omit<LoanPayment, "id">) => Promise<void>;
   formatMoney: (value: number) => string;
   t: Record<string, string>;
+  locale?: "en" | "ne";
 }
 
-export function LoanList({ items, onDelete, onAddPayment, formatMoney, t }: LoanListProps) {
+export function LoanList({ items, onDelete, onAddPayment, formatMoney, t, locale = "ne" }: LoanListProps) {
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
@@ -204,6 +205,7 @@ export function LoanList({ items, onDelete, onAddPayment, formatMoney, t }: Loan
           onAddPayment={onAddPayment}
           formatMoney={formatMoney}
           t={t}
+          locale={locale}
         />
       )}
     </section>

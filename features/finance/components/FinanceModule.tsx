@@ -10,6 +10,7 @@ import { GoalList } from "./GoalList";
 import { ReportModule } from "./ReportModule";
 import { NotificationList } from "./NotificationList";
 import { FinanceForm } from "./FinanceForm";
+import { Modal } from "../../app/components/Modal";
 import "../styles/finance-module.css";
 
 export type FinanceSection = "budgets" | "loans" | "goals" | "reports" | "notifications";
@@ -383,6 +384,7 @@ export function FinanceModule({ section, user, t, locale }: FinanceModuleProps) 
               onAddPayment={addLoanPayment}
               formatMoney={formatMoney}
               t={t}
+              locale={locale}
             />
           )}
           {section === "goals" && (
@@ -414,12 +416,15 @@ export function FinanceModule({ section, user, t, locale }: FinanceModuleProps) 
       )}
 
       {showForm && (
-        <FinanceForm
-          section={section}
-          onCancel={() => setShowForm(false)}
-          onSubmit={addItem}
-          t={t}
-        />
+        <Modal onClose={() => setShowForm(false)}>
+          <FinanceForm
+            section={section}
+            onCancel={() => setShowForm(false)}
+            onSubmit={addItem}
+            t={t}
+            locale={locale}
+          />
+        </Modal>
       )}
     </section>
   );

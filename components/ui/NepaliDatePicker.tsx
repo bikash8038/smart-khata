@@ -16,6 +16,7 @@ interface NepaliDatePickerProps {
   onChange: (adDateString: string) => void;
   locale?: "ne" | "en";
   name?: string;
+  placeholder?: string;
 }
 
 const EN_BS_MONTHS = [
@@ -55,7 +56,7 @@ const toNepaliNum = (num: number | string): string => {
 
 const YEAR_OPTIONS = Array.from({ length: 91 }, (_, i) => 2000 + i);
 
-export function NepaliDatePicker({ value, onChange, locale = "ne", name = "date" }: NepaliDatePickerProps) {
+export function NepaliDatePicker({ value, onChange, locale = "ne", name = "date", placeholder }: NepaliDatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   // Lock background scroll when datepicker modal is open
@@ -151,8 +152,9 @@ export function NepaliDatePicker({ value, onChange, locale = "ne", name = "date"
   };
 
   // Format trigger button value
-  const displayFormattedDate =
-    locale === "ne"
+  const displayFormattedDate = !value && placeholder
+    ? placeholder
+    : locale === "ne"
       ? `${toNepaliNum(selectedBs.year)}-${toNepaliNum(String(selectedBs.month).padStart(2, "0"))}-${toNepaliNum(String(selectedBs.day).padStart(2, "0"))}`
       : `${selectedBs.year}-${String(selectedBs.month).padStart(2, "0")}-${String(selectedBs.day).padStart(2, "0")}`;
 

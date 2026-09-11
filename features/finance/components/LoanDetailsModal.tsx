@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import type { Loan, LoanPayment } from "./FinanceModule";
+import { NepaliDatePicker } from "../../../components/ui/NepaliDatePicker";
 
 interface LoanDetailsModalProps {
   loan: Loan;
@@ -9,6 +10,7 @@ interface LoanDetailsModalProps {
   onAddPayment?: (loanId: string, payment: Omit<LoanPayment, "id">) => Promise<void>;
   formatMoney: (val: number) => string;
   t: Record<string, string>;
+  locale?: "en" | "ne";
 }
 
 export interface LedgerRow {
@@ -260,6 +262,7 @@ export function LoanDetailsModal({
   onAddPayment,
   formatMoney,
   t,
+  locale = "ne",
 }: LoanDetailsModalProps) {
   const todayStr = new Date().toISOString().slice(0, 10);
   const statement = calculateLoanStatement(loan, todayStr);
@@ -416,13 +419,13 @@ export function LoanDetailsModal({
                     onChange={(e) => setPaymentAmount(e.target.value)}
                   />
                 </label>
-                <label>
+                <label className="date-input-label">
                   मिति (Date)
-                  <input
-                    type="date"
-                    required
+                  <NepaliDatePicker
                     value={paymentDate}
-                    onChange={(e) => setPaymentDate(e.target.value)}
+                    onChange={setPaymentDate}
+                    locale={locale}
+                    name="paymentDate"
                   />
                 </label>
                 <label>
