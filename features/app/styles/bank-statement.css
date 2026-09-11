@@ -118,12 +118,13 @@
 }
 
 .statement-btn-primary {
-  background: #b91c1c;
+  background: linear-gradient(135deg, #0b6660, #14aa9b);
   color: #ffffff;
+  border-color: #0f766e;
 }
 
 .statement-btn-primary:hover {
-  background: #991b1b;
+  background: linear-gradient(135deg, #075f5b, #0f8f84);
 }
 
 .statement-btn-secondary {
@@ -154,7 +155,7 @@
 /* Statement Document Header */
 .statement-doc-header {
   text-align: center;
-  border-bottom: 2px solid #f97316;
+  border-bottom: 2px solid #0f766e;
   padding-bottom: 1.25rem;
   margin-bottom: 1.5rem;
 }
@@ -170,13 +171,13 @@
 .statement-brand-icon {
   width: 32px;
   height: 32px;
-  color: #ea580c;
+  color: #0f766e;
 }
 
 .statement-brand-title {
   font-size: 1.6rem;
   font-weight: 700;
-  color: #ea580c;
+  color: #0f766e;
   letter-spacing: -0.02em;
   margin: 0;
 }
@@ -213,7 +214,7 @@
 }
 
 .statement-meta-label {
-  color: #d97706;
+  color: #0f766e;
   font-weight: 600;
   white-space: nowrap;
   min-width: 130px;
@@ -221,7 +222,7 @@
 
 .statement-meta-colon {
   margin-right: 0.25rem;
-  color: #d97706;
+  color: #0f766e;
 }
 
 .statement-meta-val {
@@ -253,12 +254,12 @@
 }
 
 .statement-table th {
-  background-color: #b91c1c;
+  background-color: #0f766e;
   color: #ffffff;
   font-weight: 700;
   padding: 0.65rem 0.6rem;
   font-size: 0.82rem;
-  border: 1px solid #991b1b;
+  border: 1px solid #075f5b;
   text-align: center;
   white-space: nowrap;
 }
@@ -335,13 +336,13 @@
 }
 
 .statement-special-row {
-  background-color: #fef2f2 !important;
+  background-color: #f0fdfa !important;
   font-weight: 600;
 }
 
 .statement-special-row td {
-  border-top: 1.5px solid #fca5a5;
-  border-bottom: 1.5px solid #fca5a5;
+  border-top: 1.5px solid #a9ddd7;
+  border-bottom: 1.5px solid #a9ddd7;
 }
 
 .statement-summary-footer {
@@ -418,11 +419,11 @@
   }
 
   .statement-table th {
-    background-color: #b91c1c !important;
+    background-color: #0f766e !important;
     color: #ffffff !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
-    border: 1px solid #000000 !important;
+    border: 1px solid #075f5b !important;
   }
 
   .statement-table td {

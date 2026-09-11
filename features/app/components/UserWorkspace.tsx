@@ -43,6 +43,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
     accounts,
     categories,
     transactions,
+    transactionsWithRunningBalance,
     filteredTransactions,
     userRole,
     totals,
@@ -124,98 +125,98 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
   }
 
   return (
-    <WorkspaceFrame
-      user={user}
-      initial={initial}
-      locale={locale}
-      setLocale={setLanguage}
-      page={page}
-      setPage={setPage}
-      mobileMenuOpen={mobileMenuOpen}
-      setMobileMenuOpen={setMobileMenuOpen}
-      onAddTransaction={startTransaction}
-      onSignOut={signOut}
-      t={t}
-      userRole={userRole}
-    >
-      <section className="workspace-page">
-        <div className="page-title">
-          <div>
-            <h1>
-              {page === "dashboard"
-                ? `${dayGreeting}, ${
-                    user.user_metadata.full_name || user.email?.split("@")[0] || "there"
-                  }`
-                : page === "transactions"
-                ? t.transactions
-                : page === "accounts"
-                ? t.accounts
-                : page === "categories"
-                ? t.categories
-                : t.userManagement}
-            </h1>
-            <p>
-              {page === "dashboard"
-                ? t.privateSummary
-                : page === "transactions"
-                ? t.manageTransactions
-                : page === "accounts"
-                ? (locale === "ne" ? "आफ्नो बैंक खाता, नगद र डिजिटल वालेटहरू व्यवस्थापन गर्नुहोस्।" : "Manage your bank accounts, cash, and digital wallets.")
-                : page === "categories"
-                ? t.manageCategories
-                : t.adminPanel}
-            </p>
-          </div>
-          <div className={`title-action-buttons ${page === "categories" ? "category-page-actions" : ""}`}>
-            {page === "transactions" && (
-              <button
-                type="button"
-                className="primary-button page-action transaction-page-action"
-                onClick={() => startTransaction()}
-              >
-                {t.newTransaction}
-              </button>
-            )}
-            {page === "accounts" && (
-              <div style={{ display: "flex", gap: "10px" }}>
-                <button
-                  type="button"
-                  className="outline-button page-action"
-                  onClick={() => startTransaction("transfer")}
-                >
-                  {locale === "ne" ? "मौज्दात मिलान" : "Balance Adjustment"}
-                </button>
-                <button
-                  type="button"
-                  className="primary-button page-action"
-                  onClick={() => setShowAccountForm(true)}
-                >
-                  {t.addAccount}
-                </button>
-              </div>
-            )}
-            {page === "categories" && (
-              <>
-                <button
-                  type="button"
-                  className="primary-button page-action"
-                  onClick={() => { setEditingCategory(null); setCategoryFormMode("main"); }}
-                >
-                  Add Main Category
-                </button>
-                <button type="button" className="outline-button page-action" onClick={() => { setEditingCategory(null); setCategoryFormMode("sub"); }}>Add Subcategory</button>
-              </>
-            )}
-          </div>
+    <>
+      {notice && (
+        <div className="workspace-notice">
+          <span className="notice-text">{notice}</span>
+          <button type="button" className="notice-close" onClick={() => setNotice("")} aria-label="Close">×</button>
+          <div className="notice-progress-bar" />
         </div>
-
-        {notice && (
-          <div className="workspace-notice">
-            <span className="notice-text">{notice}</span>
-            <button type="button" className="notice-close" onClick={() => setNotice("")} aria-label="Close">×</button>
-            <div className="notice-progress-bar" />
+      )}
+      <WorkspaceFrame
+        user={user}
+        initial={initial}
+        locale={locale}
+        setLocale={setLanguage}
+        page={page}
+        setPage={setPage}
+        mobileMenuOpen={mobileMenuOpen}
+        setMobileMenuOpen={setMobileMenuOpen}
+        onAddTransaction={startTransaction}
+        onSignOut={signOut}
+        t={t}
+        userRole={userRole}
+      >
+        <section className="workspace-page">
+          <div className="page-title">
+            <div>
+              <h1>
+                {page === "dashboard"
+                  ? `${dayGreeting}, ${
+                      user.user_metadata.full_name || user.email?.split("@")[0] || "there"
+                    }`
+                  : page === "transactions"
+                  ? t.transactions
+                  : page === "accounts"
+                  ? t.accounts
+                  : page === "categories"
+                  ? t.categories
+                  : t.userManagement}
+              </h1>
+              <p>
+                {page === "dashboard"
+                  ? t.privateSummary
+                  : page === "transactions"
+                  ? t.manageTransactions
+                  : page === "accounts"
+                  ? (locale === "ne" ? "आफ्नो बैंक खाता, नगद र डिजिटल वालेटहरू व्यवस्थापन गर्नुहोस्।" : "Manage your bank accounts, cash, and digital wallets.")
+                  : page === "categories"
+                  ? t.manageCategories
+                  : t.adminPanel}
+              </p>
+            </div>
+            <div className={`title-action-buttons ${page === "categories" ? "category-page-actions" : ""}`}>
+              {page === "transactions" && (
+                <button
+                  type="button"
+                  className="primary-button page-action transaction-page-action"
+                  onClick={() => startTransaction()}
+                >
+                  {t.newTransaction}
+                </button>
+              )}
+              {page === "accounts" && (
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button
+                    type="button"
+                    className="outline-button page-action"
+                    onClick={() => startTransaction("transfer")}
+                  >
+                    {locale === "ne" ? "मौज्दात मिलान" : "Balance Adjustment"}
+                  </button>
+                  <button
+                    type="button"
+                    className="primary-button page-action"
+                    onClick={() => setShowAccountForm(true)}
+                  >
+                    {t.addAccount}
+                  </button>
+                </div>
+              )}
+              {page === "categories" && (
+                <>
+                  <button
+                    type="button"
+                    className="primary-button page-action"
+                    onClick={() => { setEditingCategory(null); setCategoryFormMode("main"); }}
+                  >
+                    Add Main Category
+                  </button>
+                  <button type="button" className="outline-button page-action" onClick={() => { setEditingCategory(null); setCategoryFormMode("sub"); }}>Add Subcategory</button>
+                </>
+              )}
+            </div>
           </div>
-        )}
 
         {loading ? (
           <PageSkeleton />
@@ -406,7 +407,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
                   />
                 ) : (
                   <TransactionList
-                    items={page === "dashboard" ? transactions.slice(0, 6) : filteredTransactions}
+                    items={page === "dashboard" ? transactionsWithRunningBalance.slice(0, 6) : filteredTransactions}
                     accounts={accounts}
                     categories={categories}
                     formatMoney={formatMoney}
@@ -470,6 +471,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
         )}
       </section>
     </WorkspaceFrame>
+    </>
   );
 }
 

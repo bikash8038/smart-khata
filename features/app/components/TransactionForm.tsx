@@ -5,7 +5,7 @@ import { NepaliDatePicker } from "../../../components/ui/NepaliDatePicker";
 
 interface Account { id: string; name: string }
 interface Category { id: string; name_ne: string; name_en: string | null; kind: "income" | "expense"; parent_id: string | null; is_main: boolean }
-interface Transaction { id: string; amount: number; kind: "income" | "expense" | "transfer"; transaction_date: string; note: string | null; account_id: string; category_id: string | null }
+interface Transaction { id: string; amount: number; kind: "income" | "expense" | "transfer"; transaction_date: string; note: string | null; account_id: string; to_account_id?: string | null; category_id: string | null }
 interface TransactionFormProps {
   t: Record<string, string>;
   locale: "en" | "ne";
@@ -33,8 +33,11 @@ export function TransactionForm({
   const initialKindValue = current?.kind ?? initialKind;
   const [kind, setKind] = useState<"income" | "expense" | "transfer">(initialKindValue);
 
-  const [fromAccountId, setFromAccountId] = useState(current?.account_id ?? accounts[0]?.id ?? "");
-  const [toAccountId, setToAccountId] = useState(current?.to_account_id ?? "");
+  const defaultFromId = current?.account_id ?? accounts[0]?.id ?? "";
+  const defaultToId = current?.to_account_id ?? (accounts.find((acc) => acc.id !== defaultFromId)?.id ?? "");
+
+  const [fromAccountId, setFromAccountId] = useState(defaultFromId);
+  const [toAccountId, setToAccountId] = useState(defaultToId);
 
   const [mainCategoryId, setMainCategoryId] = useState(currentCategory?.parent_id ?? "");
   const [categoryId, setCategoryId] = useState(current?.category_id ?? "");
@@ -66,7 +69,7 @@ export function TransactionForm({
     return (
       <section className="data-form">
         <h2>{t.newTransaction}</h2>
-        <p className="workspace-notice">{t.noAccounts}</p>
+        <p className="form-notice-info">{t.noAccounts}</p>
         <button type="button" className="text-button" onClick={onCancel}>
           {t.cancel}
         </button>

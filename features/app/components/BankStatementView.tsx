@@ -291,7 +291,7 @@ export function BankStatementView({
   };
 
   const handleExportCsv = () => {
-    const headers = ["S.N", "Transaction Date", "Description", "Withdraw", "Deposit", "Balance"];
+    const headers = ["S.N", "Transaction Date", "Description", "Expenses", "Deposit", "Balance"];
     const lines = [
       `Electronic Account Statement`,
       `Account Holder: ${accountHolderName}`,
@@ -418,27 +418,6 @@ export function BankStatementView({
               </span>
               <span className="statement-meta-val">{accountDisplayName}</span>
             </div>
-
-            <div className="statement-meta-row">
-              <span className="statement-meta-label">
-                {t.accountInterestRate || "Account Interest Rate"} <span className="statement-meta-colon">:</span>
-              </span>
-              <span className="statement-meta-val">-</span>
-            </div>
-
-            <div className="statement-meta-row">
-              <span className="statement-meta-label">
-                {t.accruedInterest || "Accrued Interest"} <span className="statement-meta-colon">:</span>
-              </span>
-              <span className="statement-meta-val">-</span>
-            </div>
-
-            <div className="statement-meta-row">
-              <span className="statement-meta-label">
-                {t.currencyCode || "Currency Code"} <span className="statement-meta-colon">:</span>
-              </span>
-              <span className="statement-meta-val">NPR</span>
-            </div>
           </div>
 
           {/* Right Column */}
@@ -472,7 +451,7 @@ export function BankStatementView({
               <span className="statement-meta-label">
                 {t.closingBalanceLabel || "Closing Balance"} <span className="statement-meta-colon">:</span>
               </span>
-              <span className="statement-meta-val highlight" style={{ color: "#b91c1c" }}>
+              <span className="statement-meta-val highlight" style={{ color: "#0f766e" }}>
                 {formatAmountValue(closingBalance)}
               </span>
             </div>
@@ -487,7 +466,7 @@ export function BankStatementView({
                 <th className="col-sn">{t.sn || "S.N"}</th>
                 <th className="col-date">{t.transactionDate || "Transaction Date"}</th>
                 <th className="col-desc">{t.description || "Description"}</th>
-                <th className="col-amount">{t.withdraw || "Withdraw"}</th>
+                <th className="col-amount">{t.withdraw || "Expenses"}</th>
                 <th className="col-amount">{t.deposit || "Deposit"}</th>
                 <th className="col-balance">{t.balance || "Balance"}</th>
               </tr>
@@ -544,7 +523,7 @@ export function BankStatementView({
                 </td>
                 <td className="col-amount"><span className="amount-dash">-</span></td>
                 <td className="col-amount"><span className="amount-dash">-</span></td>
-                <td className="col-balance" style={{ color: "#b91c1c" }}>
+                <td className="col-balance" style={{ color: "#0f766e" }}>
                   {formatAmountValue(closingBalance)}
                 </td>
               </tr>

@@ -89,7 +89,7 @@ export function useWorkspaceData(
           .order("transaction_date", { ascending: false })
           .order("created_at", { ascending: false })
           .then(async (res) => {
-            if (res.error && (res.error.code === "42703" || res.error.message?.includes("to_account_id"))) {
+            if (res.error && (res.error.code === "42703" || res.error.message?.includes("to_account_id") || res.error.message?.includes("schema cache"))) {
               return supabase
                 .from("transactions")
                 .select("id,amount,kind,transaction_date,note,account_id,category_id,created_at")
@@ -313,7 +313,7 @@ export function useWorkspaceData(
       categoryId = categoryResult.data.id;
     }
     const kind = String(form.get("kind"));
-    const payload = {
+    const payload: Record<string, unknown> = {
       user_id: user.id,
       account_id: String(form.get("account")),
       category_id: kind === "transfer" ? null : categoryId,
@@ -321,17 +321,63 @@ export function useWorkspaceData(
       amount: Number(form.get("amount")),
       transaction_date: String(form.get("date")),
       note: String(form.get("note")) || null,
-      to_account_id: kind === "transfer" ? String(form.get("to_account")) : null,
     };
 
+    if (kind === "transfer") {
+      const toAcc = String(form.get("to_account") || "");
+      const fromAcc = String(form.get("account") || "");
+      if (!toAcc || toAcc === fromAcc) {
+        setNotice(
+          locale === "ne"
+            ? "कृपया प्राप्त गर्ने फरक खाता छान्नुहोस्।"
+            : "Please select a different target account."
+        );
+        return;
+      }
+      payload.to_account_id = toAcc;
+    }
+
     try {
-      const result = editingTransaction
+      let result = editingTransaction
         ? await supabase.from("transactions").update(payload).eq("id", editingTransaction.id)
         : await supabase.from("transactions").insert(payload);
 
       if (result.error) {
-        setNotice(result.error.message);
-        return;
+        // If error is due to missing to_account_id column in database schema and it's not a transfer (or if to_account_id is null)
+        if (
+          kind !== "transfer" &&
+          (result.error.code === "42703" ||
+            result.error.message?.includes("to_account_id") ||
+            result.error.message?.includes("schema cache"))
+        ) {
+          delete payload.to_account_id;
+          const retryResult = editingTransaction
+            ? await supabase.from("transactions").update(payload).eq("id", editingTransaction.id)
+            : await supabase.from("transactions").insert(payload);
+
+          if (!retryResult.error) {
+            formElement.reset();
+            setNotice(editingTransaction ? t.transactionUpdated : t.transactionSaved);
+            setEditingTransaction(null);
+            setShowTransactionForm(false);
+            load();
+            return;
+          }
+          result = retryResult;
+        }
+
+        if (result.error) {
+          if (result.error.message?.includes("to_account_id") || result.error.message?.includes("schema cache")) {
+            setNotice(
+              locale === "ne"
+                ? "फण्ड ट्रान्सफर (Transfer) को लागि Supabase database migration (0014_add_to_account_id.sql) चलाउन आवश्यक छ।"
+                : "Database migration 0014 (to_account_id) is required for transfers. Please run it on Supabase."
+            );
+          } else {
+            setNotice(result.error.message);
+          }
+          return;
+        }
       }
       formElement.reset();
       setNotice(editingTransaction ? t.transactionUpdated : t.transactionSaved);
@@ -723,7 +769,7 @@ export function useWorkspaceData(
   }
 
   async function startTransaction(kind: "income" | "expense" | "transfer" = "expense") {
-    if (!categories.some((category) => category.kind === kind && category.is_main)) await load();
+    if (kind !== "transfer" && !categories.some((category) => category.kind === kind && category.is_main)) await load();
     setEditingTransaction(null);
     setNewTransactionKind(kind);
     setShowTransactionForm(true);
@@ -822,6 +868,7 @@ export function useWorkspaceData(
     accounts,
     categories,
     transactions,
+    transactionsWithRunningBalance,
     filteredTransactions,
     userRole,
     totals,
