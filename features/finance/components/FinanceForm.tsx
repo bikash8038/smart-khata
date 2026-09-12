@@ -77,7 +77,7 @@ export function FinanceForm({ section, onCancel, onSubmit, t, locale = "ne" }: F
         <>
           <div className="form-row-2col">
             <label>
-              {t.personName}
+              {t.personName} <span className="required-star">*</span>
               <input
                 name="personName"
                 required
@@ -86,8 +86,8 @@ export function FinanceForm({ section, onCancel, onSubmit, t, locale = "ne" }: F
               />
             </label>
             <label>
-              {t.loanType}
-              <select name="direction">
+              {t.loanType} <span className="required-star">*</span>
+              <select name="direction" required>
                 <option value="borrowed">{t.borrowed}</option>
                 <option value="lent">{t.lent}</option>
               </select>
@@ -96,7 +96,7 @@ export function FinanceForm({ section, onCancel, onSubmit, t, locale = "ne" }: F
 
           <div className="form-row-2col amount-date-row">
             <label>
-              {t.principalAmount}
+              {t.principalAmount} <span className="required-star">*</span>
               <input
                 name="principal"
                 type="number"
@@ -108,7 +108,7 @@ export function FinanceForm({ section, onCancel, onSubmit, t, locale = "ne" }: F
               />
             </label>
             <label className="date-input-label">
-              {t.loanStartDate || "Loan Start Date"}
+              {t.loanStartDate || "Loan Start Date"} <span className="required-star">*</span>
               <NepaliDatePicker
                 value={startDate}
                 onChange={setStartDate}
@@ -120,11 +120,12 @@ export function FinanceForm({ section, onCancel, onSubmit, t, locale = "ne" }: F
 
           <div className="form-row-2col">
             <label>
-              {t.rateType}
+              {t.rateType} <span className="required-star">*</span>
               <select
                 name="rateType"
                 value={selectedRateType}
                 onChange={(e) => setSelectedRateType(e.target.value)}
+                required
               >
                 <option value="percent">{t.simpleAnnual || "Simple Annual %"}</option>
                 <option value="compound">{t.annualCompound || "Annual Compound % (Banking)"}</option>
@@ -135,7 +136,7 @@ export function FinanceForm({ section, onCancel, onSubmit, t, locale = "ne" }: F
 
             {selectedRateType !== "none" ? (
               <label>
-                {t.interestRate || "Interest Rate"} {selectedRateType === "per_thousand" ? "(रु. प्रति हजार)" : "(%)"}
+                {t.interestRate || "Interest Rate"} {selectedRateType === "per_thousand" ? "(Per Thousand)" : "(%)"} <span className="required-star">*</span>
                 <input
                   name="rate"
                   type="number"
@@ -162,7 +163,7 @@ export function FinanceForm({ section, onCancel, onSubmit, t, locale = "ne" }: F
           )}
 
           <label>
-            {t.loanNote || "Purpose / Note"}
+            {t.loanNote || "Purpose / Note"} <span className="optional-text">({locale === "ne" ? "ऐच्छिक" : "Optional"})</span>
             <input
               name="note"
               type="text"

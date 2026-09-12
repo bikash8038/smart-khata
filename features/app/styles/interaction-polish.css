@@ -383,6 +383,20 @@ body > div[data-radix-popper-content-wrapper] button {
   background: #115e59 !important;
 }
 
+.required-star {
+  color: #ef4444 !important;
+  margin-left: 3px !important;
+  font-weight: 700 !important;
+}
+
+.optional-text {
+  color: #0284c7 !important;
+  font-style: italic !important;
+  font-weight: 500 !important;
+  font-size: 0.9em !important;
+  margin-left: 4px !important;
+}
+
 
 
 
