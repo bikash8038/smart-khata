@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from "react";
 import type { Loan, LoanPayment } from "./FinanceModule";
 import { LoanDetailsModal, calculateLoanStatement } from "./LoanDetailsModal";
+import { formatAdToBsEnDigits } from "../../../lib/nepali-date";
 
 interface LoanListProps {
   items: Loan[];
@@ -59,22 +60,22 @@ export function LoanList({ items, onDelete, onAddPayment, formatMoney, t, locale
   }
 
   return (
-    <section className="record-panel loan-management-panel">
+    <section className="loan-list-container">
       {/* Top Loan Summary Cards */}
       <div className="loan-dashboard-summary-grid">
         <div className="loan-summary-card borrowed">
           <div className="loan-summary-card-header">
-            <span>📥 {t.borrowedLoan || "लिएको ऋण (Borrowed)"}</span>
-            <small>{items.filter((i) => i.direction === "borrowed").length} Records</small>
+            <span>📥 {t.borrowedLoan || "लिएको ऋण"}</span>
+            <small>{items.filter((i) => i.direction === "borrowed").length} {t.records || "Records"}</small>
           </div>
           <div className="loan-summary-card-body">
             <div>
-              <label>{t.principalAmount || "सुरु सावाँ"}:</label>
+              <label>{t.principalAmount || "सावाँ"}:</label>
               <strong>{formatMoney(summary.totalBorrowedPrincipal)}</strong>
             </div>
             <div>
-              <label>{t.totalOutstanding || "बाँकी सावाँ"}:</label>
-              <strong style={{ color: "#dc3545" }}>{formatMoney(summary.totalBorrowedOutstanding)}</strong>
+              <label>{t.totalOutstanding || "कुल बाँकी"}:</label>
+              <strong style={{ color: "#d9534f" }}>{formatMoney(summary.totalBorrowedOutstanding + summary.totalBorrowedAccrued)}</strong>
             </div>
             <div>
               <label>{t.accruedInterest || "पाकेको ब्याज"}:</label>
@@ -85,17 +86,17 @@ export function LoanList({ items, onDelete, onAddPayment, formatMoney, t, locale
 
         <div className="loan-summary-card lent">
           <div className="loan-summary-card-header">
-            <span>📤 {t.lentLoan || "दिएको ऋण (Lent)"}</span>
-            <small>{items.filter((i) => i.direction === "lent").length} Records</small>
+            <span>📤 {t.lentLoan || "दिएको ऋण"}</span>
+            <small>{items.filter((i) => i.direction === "lent").length} {t.records || "Records"}</small>
           </div>
           <div className="loan-summary-card-body">
             <div>
-              <label>{t.principalAmount || "सुरु सावाँ"}:</label>
+              <label>{t.principalAmount || "सावाँ"}:</label>
               <strong>{formatMoney(summary.totalLentPrincipal)}</strong>
             </div>
             <div>
-              <label>{t.totalOutstanding || "उठ्न बाँकी सावाँ"}:</label>
-              <strong style={{ color: "#198754" }}>{formatMoney(summary.totalLentOutstanding)}</strong>
+              <label>{t.totalOutstanding || "कुल बाँकी"}:</label>
+              <strong style={{ color: "#198754" }}>{formatMoney(summary.totalLentOutstanding + summary.totalLentAccrued)}</strong>
             </div>
             <div>
               <label>{t.accruedInterest || "पाकेको ब्याज"}:</label>
@@ -123,7 +124,7 @@ export function LoanList({ items, onDelete, onAddPayment, formatMoney, t, locale
               : { text: `${item.rate || 0}% (साधारण)`, bg: "#198754" };
 
           return (
-            <article className="record-row loan-record-row" key={item.id}>
+            <article className={`record-row loan-record-row ${item.direction}`} key={item.id}>
               <div className="loan-item-primary" onClick={() => setSelectedLoan(item)} style={{ cursor: "pointer" }}>
                 <div className="loan-item-title-row">
                   <strong className="loan-person-name">{item.person_name}</strong>
@@ -140,7 +141,7 @@ export function LoanList({ items, onDelete, onAddPayment, formatMoney, t, locale
                 </div>
                 <p className="loan-item-meta">
                   {item.start_date && (
-                    <span>📅 {t.loanStartDate || "सुरु"}: {item.start_date}</span>
+                    <span>📅 {t.loanStartDate || "सुरु"}: {formatAdToBsEnDigits(item.start_date)}</span>
                   )}
                   <span> · ⏳ {stmt.durationStr}</span>
                 </p>
@@ -148,12 +149,21 @@ export function LoanList({ items, onDelete, onAddPayment, formatMoney, t, locale
 
               <div className="record-amount-actions">
                 <div className="loan-amounts" onClick={() => setSelectedLoan(item)} style={{ cursor: "pointer" }}>
-                  <b className="loan-outstanding-text">
-                    {formatMoney(stmt.totalRemaining)} <small style={{ fontWeight: 500, fontSize: "0.8rem", color: "#6c757d" }}>{t.totalOutstanding || "कुल बाँकी"}</small>
-                  </b>
-                  <small className="principal-label">
-                    ({t.principalAmount || "सावाँ"}: {formatMoney(stmt.remainingPrincipal)} | {t.accruedInterest || "ब्याज"}: {formatMoney(stmt.remainingInterest)})
-                  </small>
+                  <div className="loan-outstanding-header">
+                    <span className="loan-outstanding-val">{formatMoney(stmt.totalRemaining)}</span>
+                    <span className="loan-outstanding-tag">{t.totalOutstanding || "कुल बाँकी"}</span>
+                  </div>
+                  <div className="loan-breakdown-pills">
+                    <span className="breakdown-pill">
+                      <span className="breakdown-label">{t.principalAmount || "सावाँ"}:</span>
+                      <strong className="breakdown-val">{formatMoney(stmt.remainingPrincipal)}</strong>
+                    </span>
+                    <span className="breakdown-sep">|</span>
+                    <span className="breakdown-pill interest">
+                      <span className="breakdown-label">{t.accruedInterest || "ब्याज"}:</span>
+                      <strong className="breakdown-val">{formatMoney(stmt.remainingInterest)}</strong>
+                    </span>
+                  </div>
                 </div>
 
                 <span className="row-actions loan-actions-group">

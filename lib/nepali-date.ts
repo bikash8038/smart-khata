@@ -34,6 +34,32 @@ export function formatAdToBs(adDateString: string, locale: Language = "ne"): str
 }
 
 /**
+ * Formats a Gregorian AD date string (YYYY-MM-DD) into Bikram Sambat (BS) date string using English font digits.
+ * e.g. "2020-08-13" -> "2077-04-29"
+ */
+export function formatAdToBsEnDigits(adDateString: string | null | undefined): string {
+  if (!adDateString || typeof adDateString !== "string") return "";
+  const cleanStr = adDateString.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}/.test(cleanStr)) return adDateString;
+  try {
+    const [yearStr, monthStr, dayStr] = cleanStr.split("-");
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+    const day = parseInt(dayStr, 10);
+    const bsDate = adToBs(year, month, day);
+    if (bsDate && bsDate.year && bsDate.month && bsDate.day) {
+      const y = String(bsDate.year);
+      const m = String(bsDate.month).padStart(2, "0");
+      const d = String(bsDate.day).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+  } catch {
+    // Fallback if out of supported BS range
+  }
+  return cleanStr;
+}
+
+/**
  * Converts standard numbers to Nepali numerals if locale is 'ne'.
  */
 export function formatNumeral(num: number | string, locale: Language = "ne"): string {

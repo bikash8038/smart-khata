@@ -91,16 +91,53 @@
   justify-content: space-between;
   align-items: center;
   padding: 14px 18px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 12px;
   margin-bottom: 12px;
-  background: #ffffff;
   transition: all 0.2s ease;
 }
-.loan-record-row:hover {
-  border-color: #0d6efd;
-  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.08);
+
+/* Faint Tinted Backgrounds matching top Summary Cards */
+.loan-record-row.borrowed {
+  background: #fdf2f8 !important; /* Faint soft wine/plum tint matching top Borrowed card */
+  border: 1px solid #fbcfe8 !important;
+  box-shadow: 0 2px 6px rgba(126, 0, 76, 0.04);
 }
+.loan-record-row.borrowed:hover {
+  background: #fce7f3 !important;
+  border-color: #f472b6 !important;
+  box-shadow: 0 4px 14px rgba(126, 0, 76, 0.1);
+}
+
+.loan-record-row.lent {
+  background: #f0fdfa !important; /* Faint soft teal tint matching top Lent card */
+  border: 1px solid #cceee9 !important;
+  box-shadow: 0 2px 6px rgba(0, 128, 128, 0.04);
+}
+.loan-record-row.lent:hover {
+  background: #ccfbf1 !important;
+  border-color: #5eead4 !important;
+  box-shadow: 0 4px 14px rgba(0, 128, 128, 0.1);
+}
+
+/* Direction Badges */
+.direction-badge {
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  padding: 3px 10px !important;
+  border-radius: 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+.direction-badge.borrowed {
+  background: #7e004c !important;
+  color: #ffffff !important;
+}
+.direction-badge.lent {
+  background: #008080 !important;
+  color: #ffffff !important;
+}
+
 .loan-item-title-row {
   display: flex;
   align-items: center;
@@ -110,7 +147,8 @@
 }
 .loan-person-name {
   font-size: 1.08rem;
-  color: #1e293b;
+  color: #0f172a;
+  font-weight: 800;
 }
 .loan-rate-chip {
   font-size: 0.75rem;
@@ -120,13 +158,80 @@
 }
 .loan-item-meta {
   margin: 0;
-  font-size: 0.82rem;
-  color: #64748b;
+  font-size: 0.84rem;
+  color: #475569;
+  font-weight: 500;
 }
-.loan-outstanding-text {
-  font-size: 1.15rem;
-  color: #0f172a;
+
+/* Clear Legible Loan Amounts */
+.loan-amounts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  gap: 4px;
 }
+
+.loan-outstanding-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loan-outstanding-val {
+  font-size: 1.25rem !important;
+  font-weight: 800 !important;
+  color: #0f172a !important; /* Crisp dark slate for total outstanding amount */
+  letter-spacing: -0.01em;
+}
+
+.loan-outstanding-tag {
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  color: #475569 !important;
+  background: rgba(15, 23, 42, 0.07) !important;
+  padding: 2px 8px !important;
+  border-radius: 6px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.loan-breakdown-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem !important;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.breakdown-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.breakdown-label {
+  color: #64748b !important;
+  font-weight: 600 !important;
+}
+
+.breakdown-val {
+  color: #1e293b !important;
+  font-weight: 700 !important;
+}
+
+.breakdown-pill.interest .breakdown-val {
+  color: #0284c7 !important; /* Highlighted clear blue for interest amount */
+}
+
+.breakdown-sep {
+  color: #cbd5e1 !important;
+  font-weight: 400;
+}
+
 .loan-actions-group {
   display: flex;
   align-items: center;

@@ -1,8 +1,7 @@
-"use client";
-
 import React, { useState } from "react";
 import type { Loan, LoanPayment } from "./FinanceModule";
 import { NepaliDatePicker } from "../../../components/ui/NepaliDatePicker";
+import { formatAdToBsEnDigits } from "../../../lib/nepali-date";
 
 interface LoanDetailsModalProps {
   loan: Loan;
@@ -117,7 +116,7 @@ export function calculateLoanStatement(loan: Loan, todayStr: string) {
         totalInterestAccrued += periodInterest;
         ledgerRows.push({
           date: ev.date,
-          description: `${lastDate} देखि ${ev.date} सम्मको ब्याज`,
+          description: `${formatAdToBsEnDigits(lastDate)} देखि ${formatAdToBsEnDigits(ev.date)} सम्मको ब्याज`,
           interestAccrued: periodInterest,
           remainingInterest: currentInterestBalance,
           remainingPrincipal: currentPrincipal,
@@ -364,7 +363,7 @@ export function LoanDetailsModal({
           <div className="loan-info-summary-bar">
             <div>
               <small>{t.loanStartDate || "सुरु मिति"}:</small>
-              <b>{loan.start_date || (loan as any).created_at?.slice(0, 10) || "N/A"}</b>
+              <b>{formatAdToBsEnDigits(loan.start_date || (loan as any).created_at)}</b>
             </div>
             <div>
               <small>{t.loanDuration || "कुल अवधि"}:</small>
@@ -469,7 +468,7 @@ export function LoanDetailsModal({
                     key={idx}
                     className={row.isCapitalization ? "loan-row-capitalization" : ""}
                   >
-                    <td style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{row.date}</td>
+                    <td style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{formatAdToBsEnDigits(row.date)}</td>
                     <td>
                       {row.isCapitalization ? (
                         <span className="capitalization-tag">
