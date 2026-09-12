@@ -135,15 +135,18 @@ export function FinanceForm({ section, onCancel, onSubmit, t, locale = "ne" }: F
 
             {selectedRateType !== "none" ? (
               <label>
-                {t.interestRate} {selectedRateType === "per_thousand" ? "(रु. प्रति हजार)" : "(%)"}
+                {t.interestRate || "Interest Rate"} {selectedRateType === "per_thousand" ? "(रु. प्रति हजार)" : "(%)"}
                 <input
                   name="rate"
                   type="number"
                   min="0"
                   step="0.01"
                   required
-                  defaultValue="12"
-                  placeholder={selectedRateType === "per_thousand" ? "e.g. 20" : "e.g. 12"}
+                  placeholder={
+                    selectedRateType === "per_thousand"
+                      ? (locale === "ne" ? "जस्तै: २०" : "e.g., 20")
+                      : (locale === "ne" ? "जस्तै: १२" : "e.g., 12")
+                  }
                   autoComplete="off"
                 />
               </label>
