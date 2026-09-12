@@ -383,10 +383,17 @@ body > div[data-radix-popper-content-wrapper] button {
   background: #115e59 !important;
 }
 
+.label-text {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  margin-bottom: 4px !important;
+}
+
 .required-star {
   color: #ef4444 !important;
-  margin-left: 3px !important;
   font-weight: 700 !important;
+  display: inline-block !important;
 }
 
 .optional-text {
@@ -394,7 +401,7 @@ body > div[data-radix-popper-content-wrapper] button {
   font-style: italic !important;
   font-weight: 500 !important;
   font-size: 0.9em !important;
-  margin-left: 4px !important;
+  display: inline-block !important;
 }
 
 
