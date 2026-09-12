@@ -147,7 +147,7 @@ export function FinanceForm({ section, onCancel, onSubmit, t, locale = "ne" }: F
             {selectedRateType !== "none" ? (
               <label>
                 <span className="label-text">
-                  {t.interestRate || "Interest Rate"} {selectedRateType === "per_thousand" ? "(Per Thousand)" : "(%)"} <span className="required-star">*</span>
+                  {t.interestRate || "Interest Rate"} {selectedRateType === "per_thousand" ? (locale === "ne" ? "(रु.)" : "(Rs.)") : "(%)"} <span className="required-star">*</span>
                 </span>
                 <input
                   name="rate"
@@ -157,8 +157,8 @@ export function FinanceForm({ section, onCancel, onSubmit, t, locale = "ne" }: F
                   required
                   placeholder={
                     selectedRateType === "per_thousand"
-                      ? (locale === "ne" ? "जस्तै: २०" : "e.g., 20")
-                      : (locale === "ne" ? "जस्तै: १२" : "e.g., 12")
+                      ? (locale === "ne" ? "रु. मा ब्याजदर" : "Interest rate in Rs.")
+                      : (locale === "ne" ? "प्रतिशतमा ब्याजदर" : "Interest rate in %")
                   }
                   autoComplete="off"
                 />
