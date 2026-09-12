@@ -370,10 +370,6 @@ export function LoanDetailsModal({
               <small>{t.loanDuration || "कुल अवधि"}:</small>
               <b>{statement.durationStr}</b>
             </div>
-            <div>
-              <small>{t.dueDateLabel || "भाका मिति"}:</small>
-              <b>{loan.due_date || "N/A"}</b>
-            </div>
           </div>
 
           {/* Actions Bar */}

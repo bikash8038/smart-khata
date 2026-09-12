@@ -142,9 +142,6 @@ export function LoanList({ items, onDelete, onAddPayment, formatMoney, t, locale
                   {item.start_date && (
                     <span>📅 {t.loanStartDate || "सुरु"}: {item.start_date}</span>
                   )}
-                  {item.due_date && (
-                    <span> · ⏰ {t.dueDateLabel || "भाका"}: {item.due_date}</span>
-                  )}
                   <span> · ⏳ {stmt.durationStr}</span>
                 </p>
               </div>

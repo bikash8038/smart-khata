@@ -17,7 +17,6 @@ export function FinanceForm({ section, onCancel, onSubmit, t, locale = "ne" }: F
   
   // Datepicker States
   const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
-  const [dueDate, setDueDate] = useState<string>("");
   const [budgetStart, setBudgetStart] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [budgetEnd, setBudgetEnd] = useState<string>(() =>
     new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().slice(0, 10)
@@ -95,7 +94,7 @@ export function FinanceForm({ section, onCancel, onSubmit, t, locale = "ne" }: F
             </label>
           </div>
 
-          <div className="form-row-2col">
+          <div className="form-row-2col amount-date-row">
             <label>
               {t.principalAmount}
               <input
@@ -108,16 +107,13 @@ export function FinanceForm({ section, onCancel, onSubmit, t, locale = "ne" }: F
                 autoComplete="off"
               />
             </label>
-            <label>
-              {t.outstandingAmount}
-              <input
-                name="outstanding"
-                type="number"
-                min="0"
-                step="0.01"
-                required
-                placeholder="0.00"
-                autoComplete="off"
+            <label className="date-input-label">
+              {t.loanStartDate || "Loan Start Date"}
+              <NepaliDatePicker
+                value={startDate}
+                onChange={setStartDate}
+                locale={locale}
+                name="startDate"
               />
             </label>
           </div>
@@ -162,35 +158,12 @@ export function FinanceForm({ section, onCancel, onSubmit, t, locale = "ne" }: F
             </small>
           )}
 
-          <div className="form-row-2col amount-date-row">
-            <label className="date-input-label">
-              {t.loanStartDate || "Loan Start Date"}
-              <NepaliDatePicker
-                value={startDate}
-                onChange={setStartDate}
-                locale={locale}
-                name="startDate"
-              />
-            </label>
-
-            <label className="date-input-label">
-              {t.dueDateLabel || "भाका मिति (Due Date)"}
-              <NepaliDatePicker
-                value={dueDate}
-                onChange={setDueDate}
-                locale={locale}
-                name="dueDate"
-                placeholder={locale === "ne" ? "भाका मिति छान्नुहोस्" : "Select Due Date"}
-              />
-            </label>
-          </div>
-
           <label>
             {t.loanNote || "Purpose / Note"}
             <input
               name="note"
               type="text"
-              placeholder={t.placeholderLoanNote || "e.g., Personal, business"}
+              placeholder={t.placeholderLoanNote || "e.g., Personal use, business expansion"}
               autoComplete="off"
             />
           </label>

@@ -183,8 +183,8 @@ export function FinanceModule({ section, user, t, locale }: FinanceModuleProps) 
     const end = String(form.get("end") ?? "");
     const target = Number(form.get("target") || 0);
     const current = Number(form.get("current") || 0);
-    const outstanding = Number(form.get("outstanding") || 0);
     const principal = Number(form.get("principal") || 0);
+    const outstanding = Number(form.get("outstanding") || principal);
     if ((section === "budgets" && end < start) || (section === "goals" && current > target) || (section === "loans" && outstanding > principal)) {
       setNotice("Please check the dates and amounts entered.");
       return;
@@ -202,8 +202,8 @@ export function FinanceModule({ section, user, t, locale }: FinanceModuleProps) 
         const name = String(form.get("personName"));
         const dir = String(form.get("direction")) as "borrowed" | "lent";
         const principal = Number(form.get("principal"));
-        const outstanding = Number(form.get("outstanding"));
-        const due = String(form.get("dueDate")) || null;
+        const outstanding = Number(form.get("outstanding") || principal);
+        const due = null;
         const rateType = String(form.get("rateType") || "percent");
         const rate = rateType === "none" ? 0 : Number(form.get("rate") || 0);
         const startDate = String(form.get("startDate") || new Date().toISOString().slice(0, 10));
