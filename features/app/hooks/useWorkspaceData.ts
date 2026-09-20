@@ -279,17 +279,19 @@ export function useWorkspaceData(
     }
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
-    let categoryId = String(form.get("mainCategory") || form.get("category") || "") || null;
+    let categoryId = String(form.get("category")) || null;
     const newCategoryNe = String(form.get("newCategory_ne") || "").trim();
     const newCategoryEn = String(form.get("newCategory_en") || "").trim();
-    if (newCategoryNe) {
+    if (newCategoryNe || newCategoryEn) {
+      const parentCategoryId = String(form.get("mainCategory") || "");
+      if (!parentCategoryId || !newCategoryNe) { setNotice("Please complete the main category and category name."); return; }
       const categoryResult = await supabase.from("categories").insert({
         user_id: user.id,
         name_ne: newCategoryNe,
         name_en: newCategoryEn || newCategoryNe,
         kind: String(form.get("kind")),
-        parent_id: null,
-        is_main: true,
+        parent_id: parentCategoryId,
+        is_main: false,
         is_system: false,
       }).select("id").single();
       if (categoryResult.error) { setNotice(categoryResult.error.message); return; }
@@ -444,14 +446,15 @@ export function useWorkspaceData(
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     try {
+      const mode = String(form.get("mode")) as "main" | "sub";
       const isSystemChecked = form.get("is_system") === "on";
 
       const payload: Record<string, unknown> = {
         name_ne: String(form.get("name_ne")).trim(),
         name_en: String(form.get("name_en")).trim(),
         kind: String(form.get("kind")),
-        parent_id: null,
-        is_main: true,
+        parent_id: mode === "main" ? null : String(form.get("parentCategory")),
+        is_main: mode === "main",
       };
 
       if (userRole === "super_admin") {
@@ -462,7 +465,7 @@ export function useWorkspaceData(
         payload.user_id = user.id;
       }
 
-      if (!payload.name_ne || !payload.name_en) {
+      if (!payload.name_ne || !payload.name_en || (mode === "sub" && !payload.parent_id)) {
         setNotice("Please complete all category fields.");
         return;
       }
@@ -471,21 +474,40 @@ export function useWorkspaceData(
       const nameNe = String(payload.name_ne).trim().toLowerCase();
       const nameEn = String(payload.name_en).trim().toLowerCase();
       const kind = String(payload.kind);
+      const parentId = payload.parent_id ? String(payload.parent_id) : null;
 
-      const dup = categories.find((cat) => 
-        cat.is_main && 
-        cat.kind === kind && 
-        cat.id !== editingCategory?.id && 
-        (cat.name_ne.toLowerCase() === nameNe || 
-         (cat.name_en && cat.name_en.toLowerCase() === nameEn))
-      );
-      if (dup) {
-        setNotice(
-          locale === "ne"
-            ? "यो मुख्य क्याटेगोरी पहिले नै उपलब्ध छ।"
-            : "This main category already exists."
+      if (mode === "main") {
+        const dup = categories.find((cat) => 
+          cat.is_main && 
+          cat.kind === kind && 
+          cat.id !== editingCategory?.id && 
+          (cat.name_ne.toLowerCase() === nameNe || 
+           (cat.name_en && cat.name_en.toLowerCase() === nameEn))
         );
-        return;
+        if (dup) {
+          setNotice(
+            locale === "ne"
+              ? "यो मुख्य क्याटेगोरी पहिले नै उपलब्ध छ।"
+              : "This main category already exists."
+          );
+          return;
+        }
+      } else {
+        const dup = categories.find((cat) => 
+          !cat.is_main && 
+          cat.parent_id === parentId && 
+          cat.id !== editingCategory?.id && 
+          (cat.name_ne.toLowerCase() === nameNe || 
+           (cat.name_en && cat.name_en.toLowerCase() === nameEn))
+        );
+        if (dup) {
+          setNotice(
+            locale === "ne"
+              ? "यो सब-क्याटेगोरी यस मुख्य क्याटेगोरी अन्तर्गत पहिले नै उपलब्ध छ।"
+              : "This subcategory already exists under this main category."
+          );
+          return;
+        }
       }
 
       if (editingCategory) {

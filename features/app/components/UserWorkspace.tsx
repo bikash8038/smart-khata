@@ -204,13 +204,22 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
                 </div>
               )}
               {page === "categories" && (
-                <button
-                  type="button"
-                  className="primary-button page-action"
-                  onClick={() => { setEditingCategory(null); setCategoryFormMode("main"); }}
-                >
-                  {locale === "ne" ? "+ मुख्य क्याटेगोरी थप्नुहोस्" : "+ Add Main Category"}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="primary-button page-action"
+                    onClick={() => { setEditingCategory(null); setCategoryFormMode("main"); }}
+                  >
+                    {locale === "ne" ? "+ मुख्य क्याटेगोरी थप्नुहोस्" : "+ Add Main Category"}
+                  </button>
+                  <button
+                    type="button"
+                    className="outline-button page-action"
+                    onClick={() => { setEditingCategory(null); setCategoryFormMode("sub"); }}
+                  >
+                    {locale === "ne" ? "+ उप-श्रेणी थप्नुहोस्" : "+ Add Subcategory"}
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -305,7 +314,7 @@ export function UserWorkspace({ user, initialPage }: { user: User; initialPage?:
                 items={categories} 
                 t={t} 
                 locale={locale} 
-                onEdit={(category) => { setEditingCategory(category); setCategoryFormMode("main"); }} 
+                onEdit={(category) => { setEditingCategory(category); setCategoryFormMode(category.is_main ? "main" : "sub"); }} 
                 onDelete={removeCategory} 
                 userRole={userRole}
                 onImportExcel={importCategories}

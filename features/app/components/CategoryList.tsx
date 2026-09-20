@@ -17,6 +17,7 @@ interface CategoryListProps {
 
 export function CategoryList({ items, t, locale, onEdit, onDelete, userRole, onImportExcel }: CategoryListProps) {
   const [activeTab, setActiveTab] = useState<"expense" | "income">("expense");
+  const [selectedParentId, setSelectedParentId] = useState<string>("all");
   const [parsedRows, setParsedRows] = useState<Array<{ kind: "income" | "expense"; mainNe: string; mainEn: string; subNe: string; subEn: string }>>([]);
   const [dragActive, setDragActive] = useState(false);
   const [fileName, setFileName] = useState("");
@@ -30,7 +31,20 @@ export function CategoryList({ items, t, locale, onEdit, onDelete, userRole, onI
     </span>
   );
 
-  const filteredItems = items.filter((item) => item.kind === activeTab && item.is_main);
+  const handleTabChange = (tab: "expense" | "income") => {
+    setActiveTab(tab);
+    setSelectedParentId("all");
+  };
+
+  const filteredItems = items.filter((item) => item.kind === activeTab);
+  const mainItems = filteredItems.filter((item) => item.is_main);
+  const subItems = filteredItems.filter((item) => !item.is_main);
+  
+  const filteredSubItems = selectedParentId === "all"
+    ? subItems
+    : subItems.filter((item) => item.parent_id === selectedParentId);
+
+  const parentName = (item: Category) => label(items.find((parent) => parent.id === item.parent_id) ?? item);
 
   // Excel parsing logic
   const handleFile = (file: File) => {
@@ -49,7 +63,7 @@ export function CategoryList({ items, t, locale, onEdit, onDelete, userRole, onI
         const list: Array<{ kind: "income" | "expense"; mainNe: string; mainEn: string; subNe: string; subEn: string }> = [];
         
         for (const row of rows) {
-          if (!row || row.length < 4) continue;
+          if (!row || row.length < 6) continue;
           const kindInput = String(row[1] ?? "").trim().toLowerCase();
           const kind: "income" | "expense" = kindInput.includes("income") || kindInput.includes("आम्दानी") ? "income" : "expense";
           const mainNe = String(row[2] ?? "").trim();
@@ -107,19 +121,19 @@ export function CategoryList({ items, t, locale, onEdit, onDelete, userRole, onI
       <h2>{t.categories}</h2>
       <p className="category-help">
         {locale === "ne"
-          ? "तपाईंको कारोबार वर्गीकरणका लागि मुख्य श्रेणीहरू व्यवस्थापन गर्नुहोस्।"
-          : "Manage main categories for classifying your transactions."}
+          ? "मुख्य श्रेणी र त्यसअन्तर्गतका उप-श्रेणी अलग-अलग व्यवस्थापन गर्नुहोस्।"
+          : "Manage main categories and their subcategories separately."}
       </p>
 
       {/* Super Admin Excel Import Panel */}
       {userRole === "super_admin" && (
         <div className="excel-import-card">
           <div className="excel-import-header">
-            <h4>📊 {locale === "ne" ? "Excel बाट मुख्य क्याटेगोरी आयात गर्नुहोस् (Super Admin Only)" : "Import Main Categories from Excel (Super Admin Only)"}</h4>
+            <h4>📊 {locale === "ne" ? "Excel बाट क्याटेगोरी आयात गर्नुहोस् (Super Admin Only)" : "Import Categories from Excel (Super Admin Only)"}</h4>
             <p className="excel-import-subtitle">
               {locale === "ne"
-                ? "हाम्रो स्ट्यान्डर्ड एक्सेल टेम्प्लेट ढाँचामा क्याटेगोरीहरू अपलोड गर्नुहोस्।"
-                : "Upload main categories matching the template format."}
+                ? "हाम्रो स्ट्यान्डर्ड एक्सेल टेम्प्लेट ढाँचामा क्याटेगोरी र सब-क्याटेगोरीहरू अपलोड गर्नुहोस्।"
+                : "Upload main categories and subcategories matching the template format."}
             </p>
           </div>
 
@@ -157,6 +171,8 @@ export function CategoryList({ items, t, locale, onEdit, onDelete, userRole, onI
                       <th>Type</th>
                       <th>Main (Nepali)</th>
                       <th>Main (English)</th>
+                      <th>Sub (Nepali)</th>
+                      <th>Sub (English)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -165,11 +181,13 @@ export function CategoryList({ items, t, locale, onEdit, onDelete, userRole, onI
                         <td><span className={`badge-type ${row.kind}`}>{row.kind}</span></td>
                         <td>{row.mainNe}</td>
                         <td>{row.mainEn}</td>
+                        <td>{row.subNe || "-"}</td>
+                        <td>{row.subEn || "-"}</td>
                       </tr>
                     ))}
                     {parsedRows.length > 5 && (
                       <tr>
-                        <td colSpan={3} className="text-center font-semibold text-slate-500">
+                        <td colSpan={5} className="text-center font-semibold text-slate-500">
                           ... and {parsedRows.length - 5} more rows
                         </td>
                       </tr>
@@ -205,32 +223,39 @@ export function CategoryList({ items, t, locale, onEdit, onDelete, userRole, onI
         <button
           type="button"
           className={`category-tab-btn ${activeTab === "expense" ? "active" : ""}`}
-          onClick={() => setActiveTab("expense")}
+          onClick={() => handleTabChange("expense")}
         >
           📤 {locale === "ne" ? "खर्च वर्गीकरण" : "Expense Categories"}
         </button>
         <button
           type="button"
           className={`category-tab-btn ${activeTab === "income" ? "active" : ""}`}
-          onClick={() => setActiveTab("income")}
+          onClick={() => handleTabChange("income")}
         >
           📥 {locale === "ne" ? "आम्दानी वर्गीकरण" : "Income Categories"}
         </button>
       </div>
 
-      {/* Main Categories Grid */}
-      <div className="category-settings-grid" style={{ gridTemplateColumns: "1fr" }}>
+      {/* Categories Grid */}
+      <div className="category-settings-grid">
         <section className="category-list-section">
           <h3>
             {locale === "ne" 
-              ? (activeTab === "income" ? "मुख्य आम्दानी श्रेणीहरू" : "मुख्य खर्च श्रेणीहरू")
+              ? (activeTab === "income" ? "मुख्य आम्दानी श्रेणी" : "मुख्य खर्च श्रेणी")
               : (activeTab === "income" ? "Main Income Categories" : "Main Expense Categories")}
           </h3>
-          {filteredItems.length ? (
-            filteredItems.map((item) => (
+          <p style={{ fontSize: "0.8rem", color: "#64748b", margin: "-6px 0 10px" }}>
+            💡 {locale === "ne" 
+              ? "सब-क्याटेगोरी फिल्टर गर्न मुख्य क्याटेगोरीमा क्लिक गर्नुहोस्।" 
+              : "Click a main category to filter its subcategories."}
+          </p>
+          {mainItems.length ? (
+            mainItems.map((item) => (
               <article 
-                className="category-list-row" 
+                className={`category-list-row ${selectedParentId === item.id ? "selected-main-filter" : ""}`} 
                 key={item.id}
+                onClick={() => setSelectedParentId(selectedParentId === item.id ? "all" : item.id)}
+                style={{ cursor: "pointer" }}
               >
                 <div>
                   <strong>{label(item)}</strong>
@@ -242,6 +267,57 @@ export function CategoryList({ items, t, locale, onEdit, onDelete, userRole, onI
           ) : (
             <p className="empty-state">
               {locale === "ne" ? "कुनै मुख्य श्रेणी फेला परेन।" : "No main categories yet."}
+            </p>
+          )}
+        </section>
+
+        <section className="category-list-section">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px", gap: "10px", flexWrap: "wrap" }}>
+            <h3 style={{ margin: 0 }}>
+              {locale === "ne" 
+                ? (activeTab === "income" ? "उप-आम्दानी श्रेणी" : "उप-खर्च श्रेणी")
+                : (activeTab === "income" ? "Sub Income Categories" : "Sub Expense Categories")}
+            </h3>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <label htmlFor="parent-filter" style={{ fontSize: "0.78rem", color: "#64748b", fontWeight: "600" }}>
+                🔍 {locale === "ne" ? "फिल्टर:" : "Filter:"}
+              </label>
+              <select
+                id="parent-filter"
+                value={selectedParentId}
+                onChange={(e) => setSelectedParentId(e.target.value)}
+                style={{
+                  padding: "4px 8px",
+                  borderRadius: "6px",
+                  border: "1px solid #cbd5e1",
+                  backgroundColor: "#ffffff",
+                  fontSize: "0.78rem",
+                  color: "#1e293b",
+                  fontWeight: "500",
+                  cursor: "pointer",
+                  outline: "none"
+                }}
+              >
+                <option value="all">{locale === "ne" ? "सबै मुख्य श्रेणी" : "All Main Categories"}</option>
+                {mainItems.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{label(cat)}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {filteredSubItems.length ? (
+            filteredSubItems.map((item) => (
+              <article className="category-list-row" key={item.id}>
+                <div>
+                  <strong>{label(item)}</strong>
+                  <small>{parentName(item)} · {item.kind === "income" ? t.income : t.expense}</small>
+                </div>
+                <ActionButtons item={item} />
+              </article>
+            ))
+          ) : (
+            <p className="empty-state">
+              {locale === "ne" ? "कुनै उप-श्रेणी फेला परेन।" : "No subcategories found."}
             </p>
           )}
         </section>
