@@ -9,7 +9,7 @@ interface UserManagementProps {
   user: User;
   locale: "en" | "ne";
   t: Record<string, string>;
-  currentUserRole: "admin" | "super_admin";
+  currentUserRole: "user" | "admin" | "super_admin";
 }
 
 export function UserManagement({ user, locale, t, currentUserRole }: UserManagementProps) {

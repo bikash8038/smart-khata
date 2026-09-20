@@ -63,114 +63,91 @@ export function useWorkspaceData(
           .from("accounts")
           .select("id,name,account_type,opening_balance")
           .order("created_at"),
-        supabase
-          .from("categories")
-          .select("id,name_ne,name_en,kind,parent_id,is_main,is_system")
-          .or(`user_id.eq.${user.id},is_system.eq.true`)
-          .order("name_ne")
-          .then(async (res) => {
+        (async () => {
+          try {
+            const res = await supabase
+              .from("categories")
+              .select("id,name_ne,name_en,kind,parent_id,is_main,is_system")
+              .or(`user_id.eq.${user.id},is_system.eq.true`)
+              .order("name_ne");
             if (res.error && (res.error.code === "42703" || res.error.message?.includes("is_main") || res.error.message?.includes("parent_id") || res.error.message?.includes("is_system"))) {
-              return supabase
+              return await supabase
                 .from("categories")
                 .select("id,name_ne,name_en,kind")
                 .order("name_ne");
             }
             return res;
-          })
-          .catch(async () => {
-            return supabase
+          } catch {
+            return await supabase
               .from("categories")
               .select("id,name_ne,name_en,kind")
               .order("name_ne");
-          }),
-        supabase
-          .from("transactions")
-          .select("id,amount,kind,transaction_date,note,account_id,to_account_id,category_id,created_at")
-          .order("transaction_date", { ascending: false })
-          .order("created_at", { ascending: false })
-          .then(async (res) => {
+          }
+        })(),
+        (async () => {
+          try {
+            const res = await supabase
+              .from("transactions")
+              .select("id,amount,kind,transaction_date,note,account_id,to_account_id,category_id,created_at")
+              .order("transaction_date", { ascending: false })
+              .order("created_at", { ascending: false });
             if (res.error && (res.error.code === "42703" || res.error.message?.includes("to_account_id") || res.error.message?.includes("schema cache"))) {
-              return supabase
+              return await supabase
                 .from("transactions")
                 .select("id,amount,kind,transaction_date,note,account_id,category_id,created_at")
                 .order("transaction_date", { ascending: false })
                 .order("created_at", { ascending: false });
             }
             return res;
-          })
-          .catch(async () => {
-            return supabase
+          } catch {
+            return await supabase
               .from("transactions")
               .select("id,amount,kind,transaction_date,note,account_id,category_id,created_at")
               .order("transaction_date", { ascending: false })
               .order("created_at", { ascending: false });
-          }),
-        supabase
-          .from("profiles")
-          .select("role, status, scheduled_deletion_date")
-          .eq("id", user.id)
-          .single()
-          .then(async (res) => {
+          }
+        })(),
+        (async () => {
+          try {
+            const res = await supabase
+              .from("profiles")
+              .select("role, status, scheduled_deletion_date")
+              .eq("id", user.id)
+              .single();
             if (res.error && res.error.code === "42703") {
-              return supabase
+              return await supabase
                 .from("profiles")
                 .select("role")
                 .eq("id", user.id)
                 .single();
             }
             return res;
-          })
-          .catch(() => {
-            return supabase
+          } catch {
+            return await supabase
               .from("profiles")
               .select("role")
               .eq("id", user.id)
               .single();
-          }),
-        supabase
-          .from("category_exclusions")
-          .select("category_id")
-          .eq("user_id", user.id)
-          .then((res) => {
+          }
+        })(),
+        (async () => {
+          try {
+            const res = await supabase
+              .from("category_exclusions")
+              .select("category_id")
+              .eq("user_id", user.id);
             if (res.error) return { data: [], error: null };
             return res;
-          })
-          .catch(() => ({ data: [], error: null }))
+          } catch {
+            return { data: [], error: null };
+          }
+        })()
       ]);
 
       setAccounts((accountResult.data ?? []) as Account[]);
 
       let loadedCategories = (categoryResult.data ?? []) as Category[];
-      const missingMainCategories = (Object.keys(starterMainCategories) as Array<"income" | "expense">).flatMap((kind) =>
-        starterMainCategories[kind]
-          .filter((entry) => !loadedCategories.some((category) => category.kind === kind && category.is_main && category.name_en === entry.en))
-          .map((entry) => ({ kind, ...entry }))
-      );
 
-      // Ensure each user has the standard main category headings.
-      if (!categoryResult.error && missingMainCategories.length && !isCreatingStarterCategories.current) {
-        isCreatingStarterCategories.current = true;
-        const starterRows = missingMainCategories.map(({ kind, en, ne }) => ({
-          user_id: user.id,
-          name_ne: ne,
-          name_en: en,
-          kind,
-          parent_id: null,
-          is_main: true,
-        }));
-        const { data: createdCategories, error: createCategoriesError } = await supabase
-          .from("categories")
-          .insert(starterRows)
-          .select("id,name_ne,name_en,kind,parent_id,is_main");
-
-        if (createCategoriesError) {
-          isCreatingStarterCategories.current = false;
-        } else if (createdCategories) {
-          loadedCategories = [...loadedCategories, ...(createdCategories as Category[])].sort((a, b) =>
-            a.name_ne.localeCompare(b.name_ne)
-          );
-        }
-      }
 
       const excludedIds = ((exclusionResult?.data ?? []) as Array<{ category_id: string }>).map((ex) => ex.category_id);
       const visibleCategories = loadedCategories.filter((cat) => {
@@ -302,13 +279,19 @@ export function useWorkspaceData(
     }
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
-    let categoryId = String(form.get("category")) || null;
+    let categoryId = String(form.get("mainCategory") || form.get("category") || "") || null;
     const newCategoryNe = String(form.get("newCategory_ne") || "").trim();
     const newCategoryEn = String(form.get("newCategory_en") || "").trim();
-    if (newCategoryNe || newCategoryEn) {
-      const parentCategoryId = String(form.get("mainCategory") || "");
-      if (!parentCategoryId || !newCategoryNe || !newCategoryEn) { setNotice("Please complete the main category and both category names."); return; }
-      const categoryResult = await supabase.from("categories").insert({ user_id: user.id, name_ne: newCategoryNe, name_en: newCategoryEn, kind: String(form.get("kind")), parent_id: parentCategoryId, is_main: false }).select("id").single();
+    if (newCategoryNe) {
+      const categoryResult = await supabase.from("categories").insert({
+        user_id: user.id,
+        name_ne: newCategoryNe,
+        name_en: newCategoryEn || newCategoryNe,
+        kind: String(form.get("kind")),
+        parent_id: null,
+        is_main: true,
+        is_system: false,
+      }).select("id").single();
       if (categoryResult.error) { setNotice(categoryResult.error.message); return; }
       categoryId = categoryResult.data.id;
     }
@@ -461,15 +444,14 @@ export function useWorkspaceData(
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     try {
-      const mode = String(form.get("mode")) as "main" | "sub";
       const isSystemChecked = form.get("is_system") === "on";
 
       const payload: Record<string, unknown> = {
         name_ne: String(form.get("name_ne")).trim(),
         name_en: String(form.get("name_en")).trim(),
         kind: String(form.get("kind")),
-        parent_id: mode === "main" ? null : String(form.get("parentCategory")),
-        is_main: mode === "main",
+        parent_id: null,
+        is_main: true,
       };
 
       if (userRole === "super_admin") {
@@ -480,7 +462,7 @@ export function useWorkspaceData(
         payload.user_id = user.id;
       }
 
-      if (!payload.name_ne || !payload.name_en || (mode === "sub" && !payload.parent_id)) {
+      if (!payload.name_ne || !payload.name_en) {
         setNotice("Please complete all category fields.");
         return;
       }
@@ -489,40 +471,21 @@ export function useWorkspaceData(
       const nameNe = String(payload.name_ne).trim().toLowerCase();
       const nameEn = String(payload.name_en).trim().toLowerCase();
       const kind = String(payload.kind);
-      const parentId = payload.parent_id ? String(payload.parent_id) : null;
 
-      if (mode === "main") {
-        const dup = categories.find((cat) => 
-          cat.is_main && 
-          cat.kind === kind && 
-          cat.id !== editingCategory?.id && 
-          (cat.name_ne.toLowerCase() === nameNe || 
-           (cat.name_en && cat.name_en.toLowerCase() === nameEn))
+      const dup = categories.find((cat) => 
+        cat.is_main && 
+        cat.kind === kind && 
+        cat.id !== editingCategory?.id && 
+        (cat.name_ne.toLowerCase() === nameNe || 
+         (cat.name_en && cat.name_en.toLowerCase() === nameEn))
+      );
+      if (dup) {
+        setNotice(
+          locale === "ne"
+            ? "यो मुख्य क्याटेगोरी पहिले नै उपलब्ध छ।"
+            : "This main category already exists."
         );
-        if (dup) {
-          setNotice(
-            locale === "ne"
-              ? "यो मुख्य क्याटेगोरी पहिले नै उपलब्ध छ।"
-              : "This main category already exists."
-          );
-          return;
-        }
-      } else {
-        const dup = categories.find((cat) => 
-          !cat.is_main && 
-          cat.parent_id === parentId && 
-          cat.id !== editingCategory?.id && 
-          (cat.name_ne.toLowerCase() === nameNe || 
-           (cat.name_en && cat.name_en.toLowerCase() === nameEn))
-        );
-        if (dup) {
-          setNotice(
-            locale === "ne"
-              ? "यो सब-क्याटेगोरी यस मुख्य क्याटेगोरी अन्तर्गत पहिले नै उपलब्ध छ।"
-              : "This subcategory already exists under this main category."
-          );
-          return;
-        }
+        return;
       }
 
       if (editingCategory) {
@@ -574,35 +537,25 @@ export function useWorkspaceData(
           const target = categories.find((category) => category.id === id);
           if (!target) return;
 
-          if (target.is_system && userRole !== "super_admin") {
-            const { data: subs, error: subsError } = await supabase
-              .from("categories")
-              .select("id")
-              .eq("parent_id", id);
-
-            if (subsError) throw subsError;
-
-            const idsToExclude = [id];
-            if (subs) {
-              subs.forEach((s) => idsToExclude.push(s.id));
-            }
-
-            const rowsToInsert = idsToExclude.map((catId) => ({
-              user_id: user.id,
-              category_id: catId,
-            }));
-
-            const { error: excludeError } = await supabase
-              .from("category_exclusions")
-              .insert(rowsToInsert);
-
-            if (excludeError) throw excludeError;
-          } else {
+          if (userRole === "super_admin") {
             if (target.is_main) {
               await supabase.from("categories").delete().eq("parent_id", id);
             }
             const { error } = await supabase.from("categories").delete().eq("id", id);
             if (error) throw error;
+          } else {
+            // Regular user: Record exclusion so category NEVER reappears for this user
+            await supabase
+              .from("category_exclusions")
+              .upsert({ user_id: user.id, category_id: id }, { onConflict: "user_id,category_id" });
+
+            // If it's a user-specific category, delete from DB
+            if (!target.is_system) {
+              if (target.is_main) {
+                await supabase.from("categories").delete().eq("parent_id", id);
+              }
+              await supabase.from("categories").delete().eq("id", id);
+            }
           }
 
           setNotice(t.categoryDeleted);

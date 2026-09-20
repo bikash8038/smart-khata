@@ -3,8 +3,9 @@
 import React, { FormEvent, useMemo, useState } from "react";
 import { NepaliDatePicker } from "../../../components/ui/NepaliDatePicker";
 
+import type { Category } from "../types/workspace";
+
 interface Account { id: string; name: string }
-interface Category { id: string; name_ne: string; name_en: string | null; kind: "income" | "expense"; parent_id: string | null; is_main: boolean }
 interface Transaction { id: string; amount: number; kind: "income" | "expense" | "transfer"; transaction_date: string; note: string | null; account_id: string; to_account_id?: string | null; category_id: string | null }
 interface TransactionFormProps {
   t: Record<string, string>;
@@ -39,8 +40,14 @@ export function TransactionForm({
   const [fromAccountId, setFromAccountId] = useState(defaultFromId);
   const [toAccountId, setToAccountId] = useState(defaultToId);
 
-  const [mainCategoryId, setMainCategoryId] = useState(currentCategory?.parent_id ?? "");
-  const [categoryId, setCategoryId] = useState(current?.category_id ?? "");
+  const initialMainCategoryId = useMemo(() => {
+    if (!currentCategory) return "";
+    if (currentCategory.is_main) return currentCategory.id;
+    if (currentCategory.parent_id) return currentCategory.parent_id;
+    return "";
+  }, [currentCategory]);
+
+  const [mainCategoryId, setMainCategoryId] = useState(initialMainCategoryId);
   const [addingCategory, setAddingCategory] = useState(false);
   const [selectedDate, setSelectedDate] = useState(current?.transaction_date ?? new Date().toISOString().slice(0, 10));
 
@@ -49,18 +56,13 @@ export function TransactionForm({
     [categories, kind]
   );
 
-  // Compute activeMainCategoryId synchronously on every render so it is never empty if mainCategories exist
+  // Compute activeMainCategoryId synchronously on every render
   const activeMainCategoryId = useMemo(() => {
     if (mainCategoryId && mainCategories.some((c) => c.id === mainCategoryId)) {
       return mainCategoryId;
     }
-    return currentCategory?.parent_id ?? mainCategories[0]?.id ?? "";
-  }, [mainCategoryId, mainCategories, currentCategory]);
-
-  const subcategories = useMemo(
-    () => categories.filter((category) => category.kind === kind && !category.is_main && category.parent_id === activeMainCategoryId),
-    [categories, kind, activeMainCategoryId]
-  );
+    return initialMainCategoryId || mainCategories[0]?.id || "";
+  }, [mainCategoryId, mainCategories, initialMainCategoryId]);
 
   const label = (category: Category | undefined) =>
     category ? (locale === "ne" ? category.name_ne : (category.name_en || category.name_ne)) : "";
@@ -90,7 +92,6 @@ export function TransactionForm({
         if (otherAcc) setToAccountId(otherAcc.id);
       }
     }
-    setCategoryId("");
     setAddingCategory(false);
   };
 
@@ -104,7 +105,6 @@ export function TransactionForm({
 
   const changeMainCategory = (id: string) => {
     setMainCategoryId(id);
-    setCategoryId("");
     setAddingCategory(false);
   };
 
@@ -169,74 +169,54 @@ export function TransactionForm({
       )}
 
       {kind !== "transfer" && (
-        <>
-          <label>
-            {locale === "ne" ? "मुख्य श्रेणी" : "Main Category"}
-            <select
-              name="mainCategory"
-              value={activeMainCategoryId}
-              onChange={(event) => changeMainCategory(event.target.value)}
-              required={kind !== "transfer"}
-            >
-              {mainCategories.length === 0 && (
-                <option value="">{locale === "ne" ? "मुख्य श्रेणी छान्नुहोस्" : "Choose Main Category"}</option>
-              )}
-              {mainCategories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {label(category)}
-                </option>
-              ))}
-            </select>
-            {mainCategories.length === 0 && (
-              <button type="button" className="seed-categories-button" onClick={onSeedMainCategories}>
-                {locale === "ne" ? "डिफल्ट मुख्य श्रेणीहरू बनाउनुहोस्" : "Create default main categories"}
-              </button>
-            )}
-          </label>
-
-          <label>
-            {locale === "ne" ? "उप-श्रेणी" : "Subcategory"}
-            <div className="category-choice-wrapper">
-              {addingCategory ? (
-                <div className="new-subcategory-inputs">
-                  <input
-                    name="newCategory_ne"
-                    required={kind !== "transfer"}
-                    autoFocus
-                    placeholder={locale === "ne" ? "नेपाली उप-श्रेणी" : "Nepali subcategory"}
-                  />
-                  <input
-                    name="newCategory_en"
-                    placeholder={locale === "ne" ? "अंग्रेजी उप-श्रेणी (वैकल्पिक)" : "English subcategory (optional)"}
-                  />
-                </div>
-              ) : (
-                <select
-                  name="category"
-                  value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
-                  disabled={!activeMainCategoryId}
-                  className="subcategory-select"
-                >
-                  <option value="">{locale === "ne" ? "उप-श्रेणी छान्नुहोस्" : "Choose Subcategory"}</option>
-                  {subcategories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {label(category)}
-                    </option>
-                  ))}
-                </select>
-              )}
-              <button
-                type="button"
-                className="outline-button add-subcat-toggle-btn"
-                disabled={!activeMainCategoryId}
-                onClick={() => setAddingCategory((adding) => !adding)}
+        <label>
+          {locale === "ne" ? "क्याटेगोरी (मुख्य श्रेणी)" : "Category (Main Category)"}
+          <div className="category-choice-wrapper">
+            {addingCategory ? (
+              <div className="new-subcategory-inputs">
+                <input
+                  name="newCategory_ne"
+                  required
+                  autoFocus
+                  placeholder={locale === "ne" ? "नेपाली नयाँ क्याटेगोरी" : "Nepali new category"}
+                />
+                <input
+                  name="newCategory_en"
+                  placeholder={locale === "ne" ? "अंग्रेजी नयाँ क्याटेगोरी (वैकल्पिक)" : "English new category (optional)"}
+                />
+              </div>
+            ) : (
+              <select
+                name="mainCategory"
+                value={activeMainCategoryId}
+                onChange={(event) => changeMainCategory(event.target.value)}
+                required
+                className="subcategory-select"
               >
-                {addingCategory ? (locale === "ne" ? "छान्नुहोस्" : "Choose") : (locale === "ne" ? "+ थप्नुहोस्" : "+ Add")}
-              </button>
-            </div>
-          </label>
-        </>
+                {mainCategories.length === 0 && (
+                  <option value="">{locale === "ne" ? "क्याटेगोरी छान्नुहोस्" : "Choose Category"}</option>
+                )}
+                {mainCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {label(category)}
+                  </option>
+                ))}
+              </select>
+            )}
+            <button
+              type="button"
+              className="outline-button add-subcat-toggle-btn"
+              onClick={() => setAddingCategory((adding) => !adding)}
+            >
+              {addingCategory ? (locale === "ne" ? "छान्नुहोस्" : "Choose") : (locale === "ne" ? "+ थप्नुहोस्" : "+ Add")}
+            </button>
+          </div>
+          {mainCategories.length === 0 && !addingCategory && (
+            <button type="button" className="seed-categories-button" onClick={onSeedMainCategories}>
+              {locale === "ne" ? "डिफल्ट मुख्य श्रेणीहरू बनाउनुहोस्" : "Create default main categories"}
+            </button>
+          )}
+        </label>
       )}
 
       <div className="form-row-2col amount-date-row">
